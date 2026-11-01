@@ -97,6 +97,19 @@ def judge_mode(llm, criteria, redact=None, *, cache=None) -> Scorer:
     return score
 
 
+def redacted_inputs(scorer: Scorer, redact) -> Scorer:
+    """Redact case inputs before scoring; agent outputs are redacted when they are produced."""
+    if redact is None:
+        return scorer
+
+    def score(cases, replay, *, budget, min_pairs):
+        with errors_as(AgentError, {Exception: lambda error: f"run.redact failed: {error}"}):
+            safe = [replace(case, input=redact(case.input)) for case in cases]
+        return scorer(safe, replay, budget=budget, min_pairs=min_pairs)
+
+    return score
+
+
 def _judged(llm, criteria, cache, cases, replay, budget, min_pairs) -> Scores:
     items = pairs_from_replay(cases, replay)
     limited = items[: budget // 2]  # each pair is judged in both orders
@@ -208,7 +221,14 @@ def evaluate(
         max_calls=max_calls,
         cache=cache,
     )
-    scores = scorer(cases, replayed, budget=max_calls - replayed.calls, min_pairs=min_pairs)
+    return evaluate_replay(
+        cases, replayed, scorer, budget=max_calls - replayed.calls, min_pairs=min_pairs
+    )
+
+
+def evaluate_replay(cases, replayed, scorer, *, budget, min_pairs) -> Evaluation:
+    """Score existing evidence using the same decision and downgrade rules as evaluate."""
+    scores = scorer(cases, replayed, budget=budget, min_pairs=min_pairs)
     verdict = decide(
         [value for _, value in scores.per_case], min_pairs=min_pairs, skew_guard=scores.skew_guard
     )
