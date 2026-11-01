@@ -1,6 +1,6 @@
 # promptcheckup: design for v1.0
 
-**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, the LLM judge, and the PR gate with its CLI are built (section 15).
+**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, the LLM judge, the PR gate and the weekly check-up are built, with their CLI commands (section 15).
 
 ---
 
@@ -324,7 +324,7 @@ This roughly doubles judge cost, so it runs **once per prompt hash** and is cach
 1. One LLM call receives the prompt files, the failure patterns and up to 5 failing cases.
 2. It returns edited files plus a rationale that cites case IDs. This is the EvolveTrade-style policy update.
 3. The edit is rejected without gating if:
-   - it changes more than 20% of the lines in any file; or
+   - it changes more than 20% of the words in any file, with 30 words always allowed. Words, not lines: a prompt paragraph is often one line, so a line limit would block every edit to a short prompt. The 30-word floor lets a short prompt gain one sentence; or
    - it cites no cases.
 4. Otherwise it is gated (7.3).
    - If the verdict is **better**, write the edited files into the working tree and the report to the output file. The workflow does the branch, commit and PR. The library only touches git to read the old prompts (`git show`).
@@ -457,7 +457,7 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Cases and replay | cases, record, agents, replay, cache (tests 3–5) | Done | — |
 | LLM judge | llm client, grader, judge + self-check (test 6) | Done (offline; real runs need a key) | LLM API key and budget for real runs |
 | PR gate and CLI | config, evaluation, gate report, `init` and `gate` commands, gate workflow template | Done | — |
-| Weekly check-up | starter, patterns, propose, snapshots, `checkup` and `propose` commands, check-up workflow (tests 7–9) | Planned | — |
+| Weekly check-up | starter, patterns, propose, snapshots, `checkup` and `propose` commands, check-up workflow (tests 7–9) | Done (verified with Claude Haiku and Opus as judges) | — |
 | Examples | Support-bot quickstart, trading example | Planned | LLM API key and budget |
 | Validation | Section 14, dogfood on LayeredMemoryTrader | Planned | 2+ weeks of real check-ups |
 | Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
