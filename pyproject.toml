@@ -1,11 +1,33 @@
 [project]
 name = "promptcheckup"
-version = "0.0.1"
+dynamic = ["version"]  # single source: src/promptcheckup/__init__.py
 description = "Prove a prompt change made your AI agent better, with paired replay."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Gaille Amolong" }]
+keywords = ["llm", "agents", "prompt-engineering", "evaluation", "statistics", "ab-testing", "trading"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/gael55x/promptcheckup"
+Documentation = "https://github.com/gael55x/promptcheckup/blob/main/docs/connect-your-agent.md"
+Changelog = "https://github.com/gael55x/promptcheckup/blob/main/CHANGELOG.md"
+Issues = "https://github.com/gael55x/promptcheckup/issues"
 
 [project.scripts]
 promptcheckup = "promptcheckup.cli.main:main"
@@ -14,8 +36,11 @@ promptcheckup = "promptcheckup.cli.main:main"
 dev = ["pytest==9.1.1", "ruff==0.17.1"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]  # PEP 639 license metadata
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/promptcheckup/__init__.py"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

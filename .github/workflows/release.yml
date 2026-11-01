@@ -1,0 +1,45 @@
+name: release
+
+# Publishes to PyPI when a GitHub release is published, using trusted publishing:
+# no API token is stored anywhere. One-time setup on pypi.org: add this repository,
+# workflow file `release.yml` and environment `pypi` as a trusted publisher.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build==1.6.1 pytest==9.1.1
+      - name: Run the tests on the exact commit being released
+        run: python -m pytest -q
+      - name: Require the release tag to match the package version
+        run: |
+          version=$(python -c 'import re, pathlib; print(re.search(r"__version__ = \"(.+)\"", pathlib.Path("src/promptcheckup/__init__.py").read_text())[1])')
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME does not match version $version"; exit 1; }
+      - run: python -m build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # trusted publishing; no token secret exists
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

@@ -186,3 +186,26 @@ def test_weekly_case_globs_are_recursive_like_the_existing_case_loader(project):
     config.write_text(config.read_text().replace("cases/*.jsonl", "cases/**/*.jsonl"))
     assert execute(project) == 0
     assert not (project / "cases/starter.jsonl").exists()
+
+
+def test_cli_worse_previous_prompt_exits_one_with_provenance(project, capsys):
+    assert execute(project) == 0
+    capsys.readouterr()
+    (project / "system").write_text("-2\n")
+    output = project / "result.json"
+    assert execute(project, "--json", str(output)) == 1
+    data = json.loads(output.read_text())
+    assert data["drift_baseline"] == "previous prompt"
+    assert data["previous_prompts_hash"] != data["prompts_hash"]
+    assert "which used a different prompt" in capsys.readouterr().out.splitlines()[0]
+
+
+def test_weekly_workflow_restores_previous_prompt_snapshots(tmp_path):
+    assert main(["init", "--dir", str(tmp_path)]) == 0
+    text = (tmp_path / ".github/workflows/promptcheckup-checkup.yml").read_text()
+    restore = text.split("restore-keys: |\n")[1].splitlines()[:2]
+    assert [line.strip() for line in restore] == [
+        "promptcheckup-snapshots-${{ hashFiles('prompts/system.md', 'prompts/tools.md') }}-",
+        "promptcheckup-snapshots-",
+    ]
+    assert "merge" not in text

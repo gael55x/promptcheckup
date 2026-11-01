@@ -1,0 +1,79 @@
+cff-version: 1.2.0
+message: "If you use promptcheckup in your work, please cite it as below."
+type: software
+title: "promptcheckup: paired replay for deciding whether a prompt change made an AI agent better"
+version: 1.0.0
+license: Apache-2.0
+repository-code: "https://github.com/gael55x/promptcheckup"
+authors:
+  - family-names: Amolong
+    given-names: Gaille
+keywords:
+  - large language models
+  - agents
+  - prompt engineering
+  - evaluation
+  - paired comparison
+references:
+  - type: article
+    title: "MemTrial: Learning When to Trust Memory in LLM Portfolio Agents"
+    authors:
+      - family-names: Wu
+        given-names: Guanghao
+      - family-names: Cai
+        given-names: Zhuo
+      - family-names: Wang
+        given-names: Shoujin
+    year: 2026
+    url: "https://arxiv.org/abs/2610.11732"
+    notes: "The paired-replay gate: compare decisions on the same inputs so shared noise cancels."
+  - type: article
+    title: "EvolveTrade: Experience-Driven Policy Refinement for Self-Evolving LLM Trading Agents"
+    authors:
+      - family-names: Kim
+        given-names: Sehee
+      - family-names: Choi
+        given-names: Yumin
+      - family-names: Kang
+        given-names: Minki
+      - family-names: Hwang
+        given-names: Sung Ju
+    year: 2026
+    url: "https://arxiv.org/abs/2609.17632"
+    notes: "The proposer: an LLM rewrites the agent's prompt from decision traces and outcomes."
+  - type: article
+    title: "SHARP: A Self-Evolving Human-Auditable Rubric Policy for Financial Trading Agents"
+    authors:
+      - family-names: Chen
+        given-names: Xiwen
+      - family-names: Zhu
+        given-names: Wenhui
+      - family-names: Zheng
+        given-names: Songzhu
+      - family-names: Rasul
+        given-names: Kashif
+      - family-names: Deng
+        given-names: Yueyue
+      - family-names: Li
+        given-names: Huayu
+    year: 2026
+    url: "https://arxiv.org/abs/2605.06822"
+    notes: "Small, attributable rule edits with validation, and an audit trail."
+  - type: article
+    title: "ATLAS: Adaptive Trading with LLM AgentS Through Dynamic Prompt Optimization and Multi-Agent Coordination"
+    authors:
+      - family-names: Papadakis
+        given-names: Charidimos
+      - family-names: Dimitriou
+        given-names: Angeliki
+      - family-names: Filandrianos
+        given-names: Giorgos
+      - family-names: Lymperaiou
+        given-names: Maria
+      - family-names: Thomas
+        given-names: Konstantinos
+      - family-names: Stamou
+        given-names: Giorgos
+    year: 2025
+    url: "https://arxiv.org/abs/2510.15949"
+    notes: "Prior art: feedback-driven prompt optimization for a trading agent."

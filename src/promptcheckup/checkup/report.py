@@ -32,6 +32,18 @@ CHECKUP_HEADLINES = (
         lambda r, confidence: "Check-up incomplete: call budget reached.",
     ),
     (
+        lambda r: (
+            r.drift is not None
+            and r.drift.verdict.decision == "worse"
+            and r.drift_baseline == "previous prompt"
+        ),
+        lambda r, confidence: (
+            "Your agent got worse since the last check-up, which used a different prompt"
+            + (" (agent version changed)" if r.agent_version_changed else "")
+            + f": {r.drift.verdict.losses} of {r.drift.verdict.n} cases regressed."
+        ),
+    ),
+    (
         lambda r: r.drift is not None and r.drift.verdict.decision == "worse",
         lambda r, confidence: (
             "Your agent got worse this week without a prompt change"
@@ -235,6 +247,7 @@ def _drift_details(result):
             f"Drift comparison: {evaluation.verdict.decision}; "
             f"{_cell(evaluation.verdict.reason)}.\n\n"
             f"Agent version changed: {'yes' if result.agent_version_changed else 'no'}.\n\n"
+            + _previous_prompt_details(result)
             + _stats(evaluation.verdict, _decimals(evaluation.verdict))
             + "\n\n"
             + _self_check(evaluation.scores.self_check)
@@ -242,6 +255,16 @@ def _drift_details(result):
     if result.snapshot_saved:
         return "Drift: first check-up: snapshot saved."
     return "Drift: not completed; no snapshot saved."
+
+
+def _previous_prompt_details(result):
+    if result.drift_baseline != "previous prompt":
+        return ""
+    return (
+        f"Previous prompt hash: {_cell(result.previous_prompts_hash)}. "
+        f"Current prompt hash: {_cell(result.prompts_hash)}.\n\n"
+        "The prompt and the environment may both have changed.\n\n"
+    )
 
 
 def _pattern_details(patterns):

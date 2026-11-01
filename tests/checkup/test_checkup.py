@@ -493,3 +493,101 @@ def test_repeat_checkups_report_each_failed_run_once(tmp_path):
 
     assert len(first.errors) == len(second.errors) == 10
     assert second.drift is not None
+
+
+def check_prompt(directory, prompts, **settings):
+    return checkup(
+        function_agent(agent),
+        cases(),
+        prompts,
+        llm_stub(rejected=True),
+        directory=directory,
+        score_fn=score,
+        min_pairs=5,
+        **settings,
+    )
+
+
+@pytest.mark.parametrize("version", ["", "v2"])
+def test_new_prompt_compares_previous_then_its_own_snapshot(tmp_path, version):
+    from promptcheckup.checkup.report import checkup_report
+
+    old_hash = prompt_hash(PROMPTS)
+    new = {"system": "-2"}
+    new_hash = prompt_hash(new)
+    first = check_prompt(tmp_path, PROMPTS)
+    assert first.drift is None and first.snapshot_saved
+    second = check_prompt(tmp_path, new, agent_version=version)
+    assert second.drift.verdict.decision == "worse"
+    assert second.drift_baseline == "previous prompt"
+    assert second.prompts_hash == new_hash and second.previous_prompts_hash == old_hash
+    suffix = " (agent version changed)" if version else ""
+    report = checkup_report(second, version="test")
+    assert report.splitlines()[0] == (
+        "Your agent got worse since the last check-up, which used a different prompt"
+        + suffix
+        + ": 5 of 5 cases regressed."
+    )
+    assert f"Previous prompt hash: {old_hash}" in report
+    assert f"Current prompt hash: {new_hash}" in report
+    assert "The prompt and the environment may both have changed." in report
+    third = check_prompt(tmp_path, new, agent_version=version)
+    assert third.drift_baseline == "same prompt"
+    assert third.previous_prompts_hash == ""
+    assert third.drift.verdict.decision == "inconclusive"
+
+
+def test_better_new_prompt_is_not_flagged(tmp_path):
+    from promptcheckup.checkup.report import checkup_report
+
+    check_prompt(tmp_path, PROMPTS)
+    result = check_prompt(tmp_path, {"system": "2"})
+    assert result.drift.verdict.decision == "better"
+    assert result.drift_baseline == "previous prompt"
+    assert "got worse" not in checkup_report(result, version="test")
+
+
+def test_new_prompt_drift_uses_only_shared_cases(tmp_path):
+    check_prompt(tmp_path, PROMPTS)
+    result = checkup(
+        function_agent(agent),
+        cases(6)[1:],
+        {"system": "-2"},
+        llm_stub(rejected=True),
+        directory=tmp_path,
+        score_fn=score,
+        min_pairs=5,
+    )
+    assert result.drift.verdict.n == 4
+    assert result.drift.verdict.decision == "inconclusive"
+    assert result.drift_baseline == "previous prompt"
+
+
+def test_same_prompt_snapshot_takes_priority_over_newer_other_prompt(tmp_path):
+    check_prompt(tmp_path, PROMPTS)
+    check_prompt(tmp_path, {"system": "2"})
+    result = check_prompt(tmp_path, PROMPTS)
+    assert result.drift_baseline == "same prompt"
+    assert result.drift.verdict.decision == "inconclusive"
+
+
+@pytest.mark.parametrize("cap", [9, 39])
+def test_incomplete_new_prompt_check_preserves_all_snapshots(tmp_path, cap):
+    check_prompt(tmp_path, PROMPTS)
+    directory = tmp_path / ".promptcheckup/snapshots"
+    before = {path.name: path.read_bytes() for path in directory.iterdir()}
+    result = checkup(
+        function_agent(agent),
+        cases(),
+        {"system": "-2"},
+        llm_stub(),
+        directory=tmp_path,
+        min_pairs=5,
+        max_calls=cap,
+    )
+    assert result.budget_exhausted and not result.snapshot_saved
+    assert {path.name: path.read_bytes() for path in directory.iterdir()} == before
+    if cap == 39:
+        assert result.drift_baseline == "previous prompt"
+        assert result.drift.budget_exhausted
+        assert result.drift.verdict.decision == "inconclusive"
