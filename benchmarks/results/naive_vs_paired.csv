@@ -1,3 +1,3 @@
 method,correct,wrong,no_call,simulations
 naive (different weeks),0.587,0.413,0.0,2000
-paired replay,0.88,0.0,0.12,2000
+paired replay,0.9165,0.0,0.0835,2000
