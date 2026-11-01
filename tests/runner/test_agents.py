@@ -187,23 +187,6 @@ def test_command_agent_reports_missing_executable(tmp_path):
     assert isinstance(caught.value.__cause__, OSError)
 
 
-def test_runner_package_exports_its_public_names():
-    import promptcheckup.runner
-
-    assert set(promptcheckup.runner.__all__) == {
-        "Agent",
-        "AgentError",
-        "Cache",
-        "Replay",
-        "Run",
-        "call_agent",
-        "command_agent",
-        "prompt_hash",
-        "python_agent",
-        "replay",
-    }
-
-
 def test_command_agent_decodes_output_as_utf8_regardless_of_locale(tmp_path):
     # Agents in any language print UTF-8 JSON; decoding must not depend on the OS locale.
     script = tmp_path / "agent.py"

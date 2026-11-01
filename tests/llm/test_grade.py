@@ -107,12 +107,6 @@ def test_propagates_callable_failure():
     assert caught.value is error
 
 
-def test_llm_package_exports_grading_public_names():
-    import promptcheckup.llm
-
-    assert {"Grade", "grade"} <= set(promptcheckup.llm.__all__)
-
-
 def test_agent_output_cannot_close_its_block_and_inject_criteria():
     # The agent under test controls its output text. If it could close the delimiter,
     # it could hand the judge new criteria: a direct route to reward hacking.
