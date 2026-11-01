@@ -180,11 +180,11 @@
 <circle class="ring" cx="725.0" cy="171.2" r="5" fill="none" stroke-width="2"/>
 <circle class="s3" cx="805.0" cy="176.0" r="4"/>
 <circle class="ring" cx="805.0" cy="176.0" r="5" fill="none" stroke-width="2"/>
-<path class="s1" d="M645.0,255.1 L671.7,266.8 L725.0,269.7 L805.0,270.0" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<circle class="s1" cx="645.0" cy="255.1" r="4"/>
-<circle class="ring" cx="645.0" cy="255.1" r="5" fill="none" stroke-width="2"/>
-<circle class="s1" cx="671.7" cy="266.8" r="4"/>
-<circle class="ring" cx="671.7" cy="266.8" r="5" fill="none" stroke-width="2"/>
+<path class="s1" d="M645.0,248.5 L671.7,266.0 L725.0,269.7 L805.0,270.0" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s1" cx="645.0" cy="248.5" r="4"/>
+<circle class="ring" cx="645.0" cy="248.5" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="671.7" cy="266.0" r="4"/>
+<circle class="ring" cx="671.7" cy="266.0" r="5" fill="none" stroke-width="2"/>
 <circle class="s1" cx="725.0" cy="269.7" r="4"/>
 <circle class="ring" cx="725.0" cy="269.7" r="5" fill="none" stroke-width="2"/>
 <circle class="s1" cx="805.0" cy="270.0" r="4"/>

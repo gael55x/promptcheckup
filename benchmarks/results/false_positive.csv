@@ -35,10 +35,10 @@ judge,50,percentile bootstrap (rejected),0.021,1000
 judge,80,shipped: paired t + skew guard,0.02275,4000
 judge,80,paired t without skew guard,0.02925,4000
 judge,80,percentile bootstrap (rejected),0.031,1000
-crash_skew,20,shipped: paired t + skew guard,0.014,4000
+crash_skew,20,shipped: paired t + skew guard,0.02025,4000
 crash_skew,20,paired t without skew guard,0.12725,4000
 crash_skew,20,percentile bootstrap (rejected),0.134,1000
-crash_skew,30,shipped: paired t + skew guard,0.003,4000
+crash_skew,30,shipped: paired t + skew guard,0.00375,4000
 crash_skew,30,paired t without skew guard,0.113,4000
 crash_skew,30,percentile bootstrap (rejected),0.098,1000
 crash_skew,50,shipped: paired t + skew guard,0.00025,4000
