@@ -1,6 +1,6 @@
 # promptcheckup: design for v1.0
 
-**Status:** design for v1.0, written 2026-11-01. Milestones M0–M1 are built (section 15).
+**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, and the LLM judge are built (section 15).
 
 ---
 
@@ -95,8 +95,10 @@ Modules are grouped into subpackages by concern. Each subpackage re-exports its 
 | | `record.py` | The `@record` decorator: apply `redact()`, then append `{input, output}` to JSONL |
 | `runner/` | `agents.py` | Run the agent: as a Python `module:function`, or as a command over stdin/stdout. Enforce the timeout |
 | | `replay.py` | Run a prompt set over the cases with k samples, A and B back-to-back. Enforce the call cap. Read and write the output cache |
-| `llm/` | `client.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) that records token usage |
-| | `judge.py` | `compare(case, out_a, out_b)` and `grade(case, out)`, both against the user's criteria; order-swapping; self-check |
+| `llm/` | `client.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) using `urllib`; temperature 0; retries, timeouts, token usage |
+| | `prompting.py` | Embed untrusted data in prompts safely (escaped `<` `>`); parse strict JSON replies |
+| | `grade.py` | `grade(case, out)`: pass/fail with a one-line reason against the user's criteria |
+| | `judge.py` | `compare(case, out_a, out_b)` against the user's criteria; order-swapping; paired preference scores; self-check |
 | | `starter.py` | Generate synthetic starter cases from the prompt, the agent description and one example input |
 | | `propose.py` | Generate one small edit from the prompts and the failing cases, with a rationale citing case IDs |
 | `checkup/` | `checkup.py` | Orchestrate drift check, then failure patterns, then propose and gate |
@@ -108,16 +110,17 @@ Modules are grouped into subpackages by concern. Each subpackage re-exports its 
 ```
 src/promptcheckup/
   __init__.py          public API
-  stats/               built
-  data/  runner/  llm/  checkup/  cli/      planned, created with their first module
+  stats/  data/  runner/  llm/      built
+  checkup/  cli/                    planned, created with their first module
 tests/
-  stats/test_gate.py
+  stats/  data/  runner/  llm/      one test file per module
   examples/test_planted.py
+  test_public_api.py                the package-root API contract
 examples/
   planted/             README.md, planted.py
 ```
 
-**Dependencies:** Python 3.11+ (for `tomllib`) and `httpx`. The statistics use the standard library only. Dev dependencies are `pytest` and `ruff`.
+**Dependencies:** none at runtime. Python 3.11+ (for `tomllib`) and its standard library only, including `urllib` for the LLM client. Dev dependencies are `pytest` and `ruff`.
 
 **Size target:** about 1,500 lines of library code. If it goes beyond that before v1.0, look for speculative scope.
 
@@ -275,6 +278,8 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
 3. If it excludes 0, or the judge's order-consistency rate is below 70%:
    - the verdict is **downgraded to inconclusive**;
    - the report says "the judge is unreliable for these criteria" and suggests sharper criteria or a stronger judge model.
+4. If there are fewer usable cases than `min_pairs`, the judge **cannot be checked**, so it is reported as not reliable. It is never certified from too little evidence.
+5. `llm/judge.py` returns this result as a `SelfCheck`. Applying the downgrade and caching per prompt hash happen in the check-up layer.
 
 This roughly doubles judge cost, so it runs **once per prompt hash** and is cached.
 
@@ -341,6 +346,8 @@ Users add their LLM key as a repository secret. The workflows request the minimu
   - `.promptcheckup/cache/` is gitignored by default.
 - **Never auto-merge.** Proposals are always PRs for a human to review.
 - **Errors are loud.** Agent, scorer and judge failures are reported, never skipped. Judge output that can't be parsed is an error, not a tie.
+- **The judge can't be steered by the data it judges.** Case inputs and agent outputs are embedded with `<` and `>` escaped, so an output cannot close its block and inject criteria. This matters because the tool optimizes prompts against the judge, which is an open door to reward hacking.
+- **Repeatable judgments.** The LLM client always uses temperature 0.
 - **Reproducibility.** Every report includes the prompt hashes, model IDs and the library version.
 - **Trading demo only:**
   - use months after the model's knowledge cutoff;
@@ -367,7 +374,7 @@ Each step's tests are written and fail before its code is written. Tests use rea
 | 3 | `cases.py`, `record.py` | Round-trips the JSONL; `redact` runs before writing; output that isn't JSON-serializable gives a clear error |
 | 4 | `agents.py` | A Python entrypoint works; a real two-line Node or Python command works through stdin/stdout; timeouts are enforced |
 | 5 | `replay.py` | A second run hits the cache (call count drops); the call cap stops the run and yields inconclusive; agent errors are surfaced |
-| 6 | `judge.py` | Order swap is applied; inconsistent judgments count 0; a stub biased toward position A fails the self-check and downgrades the verdict; unparseable output raises |
+| 6 | `client.py`, `grade.py`, `judge.py` | Client: real local HTTP server, retries on 429/5xx/timeouts only, key never in errors, null usage keeps the answer. Grade and judge: order swap is applied; inconsistent judgments count 0; a position-biased stub fails the self-check; a self-check with too few cases is not reliable; unparseable output raises; injected closing tags cannot create extra prompt blocks. Done. |
 | 7 | `starter.py`, `propose.py` | Starter cases match the example input's keys and are labelled synthetic; an edit changing more than 20% of lines or citing no cases is rejected |
 | 8 | `checkup.py` | Drift: an injected "model change" stub produces **worse**; with no change the report says "stable"; patterns are capped at 3 |
 | 9 | `report.py`, `cli.py` | Every report starts with a headline sentence; snapshot test of the markdown; exit codes as in 6.4; `init` writes valid TOML and workflow YAML |
@@ -419,18 +426,18 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 3. **Dogfood on LayeredMemoryTrader.** Point it at the existing agent's prompts and run 2–3 weekly check-ups. Each case must include that day's memory snapshot (section 13, item 1). This produces real issue screenshots and the launch article.
 4. **Run real check-ups for 2+ weeks before launch.** Show actual reports in the README, not mock-ups.
 
-## 15. Milestones
+## 15. Build order
 
-| Milestone | Contents | Status | External inputs |
+| Stage | Contents | Status | External inputs |
 |---|---|---|---|
-| M0 | Repo, Apache-2.0, ruff, pytest, CI | Done | — |
-| M1 | `gate.py` + planted example (tests 1–2) | Done | — |
-| M2 | cases, record, agents, replay, cache (tests 3–5) | Done | — |
-| M3 | llm, judge + self-check (test 6) | Next | LLM API key and budget for real runs |
-| M4 | starter, propose, checkup, report, CLI, init + templates (tests 7–9) | Planned | — |
-| M5 | Support-bot quickstart, trading example | Planned | LLM API key and budget |
-| M6 | Validation (section 14), dogfood on LayeredMemoryTrader | Planned | 2+ weeks of real check-ups |
-| M7 | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
+| Project setup | Repo, Apache-2.0, ruff, pytest, CI | Done | — |
+| Statistical gate | `gate.py` + planted example (tests 1–2) | Done | — |
+| Cases and replay | cases, record, agents, replay, cache (tests 3–5) | Done | — |
+| LLM judge | llm client, grader, judge + self-check (test 6) | Done (offline; real runs need a key) | LLM API key and budget for real runs |
+| Check-up and CLI | starter, propose, checkup, report, CLI, init + templates (tests 7–9) | Planned | — |
+| Examples | Support-bot quickstart, trading example | Planned | LLM API key and budget |
+| Validation | Section 14, dogfood on LayeredMemoryTrader | Planned | 2+ weeks of real check-ups |
+| Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
 
 ## 16. Decisions made
 
@@ -442,11 +449,11 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Judge | Pairwise, order-swapped, with a self-check |
 | LLM access | One OpenAI-compatible endpoint; user brings their own key |
 | License | Apache-2.0 |
-| Language | Python 3.11+, single runtime dependency (`httpx`) |
+| Language | Python 3.11+, standard library only (HTTP via `urllib`; `httpx` was planned but one JSON POST does not need it) |
 
 ## 17. Open items
 
-- **Defaults to tune during M6** from measured cost and inconclusive rate:
+- **Defaults to tune during validation** from measured cost and inconclusive rate:
   - the judge model;
   - the default size (20 cases × 2 samples);
   - the judge's order-consistency threshold (70%);

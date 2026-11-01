@@ -19,7 +19,7 @@ compares them case by case, and answers **better**, **worse** or **not sure yet*
 </div>
 
 > [!NOTE]
-> **Early development.** The statistical gate is built, tested and benchmarked. The agent runner, LLM judge, CLI and GitHub workflows are next.
+> **Early development.** The statistical gate, agent runner and LLM judge are built and tested. The CLI and GitHub workflows are next.
 
 ## Highlights
 
@@ -89,7 +89,7 @@ To see paired replay beat a naive comparison, run the [planted example](examples
    - **worse** if it sits entirely below zero;
    - **not sure yet** otherwise, or when the differences are skewed toward a few large losses.
 
-Today, step 3 is shipped as `decide()`. Steps 1 and 2 are being built as the `runner` package. See [DESIGN.md](DESIGN.md) for the full architecture.
+All three steps are built as library modules (`runner.replay`, `llm.judge`, `decide`). The CLI that ties them together is next. See [DESIGN.md](DESIGN.md) for the full architecture.
 
 ## Benchmarks
 
@@ -113,9 +113,9 @@ python benchmarks/charts.py                              # renders the SVG chart
 | Milestone | Status |
 |---|---|
 | Statistical gate with skew guard, benchmarks, planted example | **Done** |
-| Cases, `@record` decorator, agent runner (Python and any-language command), replay cache | In progress |
-| LLM judge with order-swapping and a self-check | Planned |
-| `promptcheckup gate` / `checkup` CLI, weekly check-up, GitHub workflow templates | Planned |
+| Cases, `@record` decorator, agent runner (Python and any-language command), replay cache | **Done** |
+| LLM judge with order-swapping, prompt-injection protection and a self-check | **Done** |
+| `promptcheckup gate` / `checkup` CLI, weekly check-up, GitHub workflow templates | Next |
 | Trading-agent and support-bot examples; validation on real agents | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).
