@@ -2,7 +2,7 @@
 cmd = "node agent.mjs"
 description = "Greets a person through JSON stdin/stdout"
 example_input = { question = "Ada" }
-timeout_s = 1
+timeout_s = 30
 
 [prompts]
 files = ["prompts/system.md"]
