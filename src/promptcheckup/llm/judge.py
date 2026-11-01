@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -111,6 +111,8 @@ class SelfCheck:
     consistency: float
     verdict: Verdict | None
     reason: str
+    calls: int = 0
+    budget_exhausted: bool = False
 
 
 def self_check(
@@ -121,10 +123,14 @@ def self_check(
     *,
     min_consistency: float = 0.7,
     max_workers: int = 4,
+    min_pairs: int = 20,
+    max_calls: int | None = None,
 ) -> SelfCheck:
     """Check order consistency and preference between samples 0 and 1 of prompt A."""
     items = _self_check_pairs(cases, replay)
-    return _check_pairs(llm, items, criteria, min_consistency, max_workers)
+    limited = items if max_calls is None else items[: max_calls // 2]
+    check = _check_pairs(llm, limited, criteria, min_consistency, max_workers, min_pairs)
+    return replace(check, calls=2 * len(limited), budget_exhausted=len(limited) < len(items))
 
 
 def _self_check_pairs(cases: Sequence[Case], replay: Replay) -> list[tuple]:
@@ -138,12 +144,12 @@ def _self_check_pairs(cases: Sequence[Case], replay: Replay) -> list[tuple]:
     return items
 
 
-def _check_pairs(llm, items, criteria, min_consistency, max_workers) -> SelfCheck:
+def _check_pairs(llm, items, criteria, min_consistency, max_workers, min_pairs) -> SelfCheck:
     if not items:
         return SelfCheck(False, 0.0, None, "need at least 2 samples of prompt A without errors")
     comparisons = judge_pairs(llm, items, criteria, max_workers=max_workers)
     consistency = sum(comparison.consistent for comparison in comparisons) / len(comparisons)
-    verdict = decide(paired_scores(comparisons), skew_guard=False)
+    verdict = decide(paired_scores(comparisons), skew_guard=False, min_pairs=min_pairs)
     return _self_check_result(consistency, verdict, min_consistency)
 
 
