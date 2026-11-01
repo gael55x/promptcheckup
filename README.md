@@ -23,7 +23,7 @@ compares them case by case, and answers **better**, **worse** or **not sure yet*
 
 ## Highlights
 
-| | |
+| Feature | What you get |
 |---|---|
 | **Paired replay** | Both prompts run on the same inputs, so shared noise (the day's market, an easy question) cancels out instead of deciding the result. |
 | **Conservative verdicts** | "Better" only when a 95% confidence interval clearly excludes zero. With no real difference, it said "better" 2.0–2.7% of the time across every benchmarked noise type. |
