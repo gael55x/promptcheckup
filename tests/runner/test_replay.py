@@ -1,7 +1,7 @@
 import time
 
 from promptcheckup.data import Case
-from promptcheckup.runner import Cache, prompt_hash, replay
+from promptcheckup.runner import Cache, function_agent, prompt_hash, replay
 
 PROMPTS_A = {"system": "Answer briefly."}
 PROMPTS_B = {"system": "Answer briefly and cite the policy."}
@@ -25,7 +25,7 @@ class RecordingAgent:
 def test_runs_old_and_new_prompt_back_to_back_for_each_case_and_sample():
     agent = RecordingAgent()
 
-    result = replay(agent, make_cases(2), PROMPTS_A, PROMPTS_B, samples=2)
+    result = replay(function_agent(agent), make_cases(2), PROMPTS_A, PROMPTS_B, samples=2)
 
     assert agent.calls == [
         ("q0", "Answer briefly."),
@@ -47,10 +47,12 @@ def test_runs_old_and_new_prompt_back_to_back_for_each_case_and_sample():
 
 def test_second_replay_with_the_same_cache_makes_no_calls(tmp_path):
     cache = Cache(tmp_path / "cache")
-    first = replay(RecordingAgent(), make_cases(3), PROMPTS_A, PROMPTS_B, cache=cache)
+    first = replay(
+        function_agent(RecordingAgent()), make_cases(3), PROMPTS_A, PROMPTS_B, cache=cache
+    )
 
     agent = RecordingAgent()
-    second = replay(agent, make_cases(3), PROMPTS_A, PROMPTS_B, cache=cache)
+    second = replay(function_agent(agent), make_cases(3), PROMPTS_A, PROMPTS_B, cache=cache)
 
     assert agent.calls == []
     assert second.calls == 0
@@ -61,11 +63,11 @@ def test_second_replay_with_the_same_cache_makes_no_calls(tmp_path):
 def test_cache_entries_expire_after_ttl(tmp_path):
     now = [1_000_000.0]
     cache = Cache(tmp_path / "cache", ttl_hours=24, clock=lambda: now[0])
-    replay(RecordingAgent(), make_cases(1), PROMPTS_A, PROMPTS_B, cache=cache)
+    replay(function_agent(RecordingAgent()), make_cases(1), PROMPTS_A, PROMPTS_B, cache=cache)
 
     now[0] += 25 * 3600
     agent = RecordingAgent()
-    result = replay(agent, make_cases(1), PROMPTS_A, PROMPTS_B, cache=cache)
+    result = replay(function_agent(agent), make_cases(1), PROMPTS_A, PROMPTS_B, cache=cache)
 
     assert result.calls == 4
     assert len(agent.calls) == 4
@@ -73,7 +75,7 @@ def test_cache_entries_expire_after_ttl(tmp_path):
 
 def test_cache_is_separate_per_agent_version(tmp_path):
     replay(
-        RecordingAgent(),
+        function_agent(RecordingAgent()),
         make_cases(1),
         PROMPTS_A,
         PROMPTS_B,
@@ -81,7 +83,7 @@ def test_cache_is_separate_per_agent_version(tmp_path):
     )
 
     result = replay(
-        RecordingAgent(),
+        function_agent(RecordingAgent()),
         make_cases(1),
         PROMPTS_A,
         PROMPTS_B,
@@ -98,14 +100,18 @@ def test_agent_errors_are_recorded_not_cached_and_do_not_stop_the_run(tmp_path):
         return "ok"
 
     cache = Cache(tmp_path)
-    result = replay(flaky, make_cases(3), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    result = replay(
+        function_agent(flaky), make_cases(3), PROMPTS_A, PROMPTS_B, samples=1, cache=cache
+    )
 
     failed = [r for r in result.runs if r.error]
     assert {(r.case_id, r.prompt_set) for r in failed} == {("c1", "A"), ("c1", "B")}
     assert all("model refused" in r.error and r.output is None for r in failed)
     assert len(result.runs) == 6
 
-    retry = replay(flaky, make_cases(3), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    retry = replay(
+        function_agent(flaky), make_cases(3), PROMPTS_A, PROMPTS_B, samples=1, cache=cache
+    )
     assert retry.calls == 2  # only the failed pair runs again
 
 
@@ -114,7 +120,9 @@ def test_slow_agent_becomes_a_timed_out_run():
         time.sleep(1)
         return "late"
 
-    result = replay(slow, make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, timeout_s=0.05)
+    result = replay(
+        function_agent(slow), make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, timeout_s=0.05
+    )
 
     assert all("timed out" in r.error for r in result.runs)
 
@@ -122,7 +130,9 @@ def test_slow_agent_becomes_a_timed_out_run():
 def test_call_budget_stops_before_a_pair_would_be_split():
     agent = RecordingAgent()
 
-    result = replay(agent, make_cases(5), PROMPTS_A, PROMPTS_B, samples=1, max_calls=5)
+    result = replay(
+        function_agent(agent), make_cases(5), PROMPTS_A, PROMPTS_B, samples=1, max_calls=5
+    )
 
     assert result.budget_exhausted
     assert result.calls == 4
@@ -137,10 +147,24 @@ def test_prompt_hash_ignores_key_order_and_changes_with_text():
 
 def test_damaged_cache_entries_count_as_misses(tmp_path):
     cache = Cache(tmp_path)
-    replay(RecordingAgent(), make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    replay(
+        function_agent(RecordingAgent()),
+        make_cases(1),
+        PROMPTS_A,
+        PROMPTS_B,
+        samples=1,
+        cache=cache,
+    )
     for path in tmp_path.glob("*.json"):
         path.write_text('{"unexpected": true}', encoding="utf-8")
 
-    result = replay(RecordingAgent(), make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    result = replay(
+        function_agent(RecordingAgent()),
+        make_cases(1),
+        PROMPTS_A,
+        PROMPTS_B,
+        samples=1,
+        cache=cache,
+    )
 
     assert result.calls == 2
