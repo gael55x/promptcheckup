@@ -33,7 +33,10 @@ class _Reply:
 
 
 class LLM:
-    """Call a chat-completions endpoint at temperature 0, counting successful calls."""
+    """Call a chat-completions endpoint, counting successful calls.
+
+    Temperature is sent only when given: current Claude and OpenAI reasoning models reject it.
+    """
 
     def __init__(
         self,
@@ -44,6 +47,7 @@ class LLM:
         timeout_s: float = 60,
         max_retries: int = 2,
         backoff_s: float = 0.5,
+        temperature: float | None = None,
     ):
         if max_retries < 0:
             raise ValueError("max_retries must be 0 or more")
@@ -53,12 +57,13 @@ class LLM:
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.backoff_s = backoff_s
+        self.temperature = temperature
         self.usage = Usage()
         self._usage_lock = Lock()
 
     def __call__(self, prompt: str) -> str:
         key = _api_key(self.api_key_env)
-        request = _request(self.base_url, self.model, key, prompt)
+        request = _request(self.base_url, self.model, key, prompt, self.temperature)
         reply = _send(request, self.timeout_s, self.max_retries, self.backoff_s)
         if not _succeeded(reply):
             raise LLMError(_failure(reply, key))
@@ -84,15 +89,15 @@ def _api_key(api_key_env: str) -> str:
     return key
 
 
-def _request(base_url: str, model: str, key: str, prompt: str) -> Request:
+def _request(
+    base_url: str, model: str, key: str, prompt: str, temperature: float | None
+) -> Request:
     headers = {"Content-Type": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.0,
-    }
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    if temperature is not None:
+        payload["temperature"] = temperature
     with errors_as(LLMError, {ValueError: f"invalid LLM base URL {base_url!r}"}):
         return Request(
             f"{base_url}/chat/completions",

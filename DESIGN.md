@@ -116,7 +116,7 @@ These rules hold for every module. CI enforces the first one.
 | | `record.py` | The `@record` decorator: apply `redact()`, then append `{input, output}` to JSONL |
 | `runner/` | `agents.py` | Run the agent: as a Python `module:function`, or as a command over stdin/stdout. Enforce the timeout |
 | | `replay.py` | Run a prompt set over the cases with k samples, A and B back-to-back. Enforce the call cap. Read and write the output cache |
-| `llm/` | `client.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) using `urllib`; temperature 0; retries, timeouts, token usage |
+| `llm/` | `client.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) using `urllib`; no temperature unless configured; retries, timeouts, token usage |
 | | `prompting.py` | Embed untrusted data in prompts safely (escaped `<` `>`); parse strict JSON replies |
 | | `grade.py` | `grade(case, out)`: pass/fail with a one-line reason against the user's criteria |
 | | `judge.py` | `compare(case, out_a, out_b)` against the user's criteria; order-swapping; paired preference scores; self-check |
@@ -368,7 +368,7 @@ Users add their LLM key as a repository secret. The workflows request the minimu
 - **Never auto-merge.** Proposals are always PRs for a human to review.
 - **Errors are loud.** Agent, scorer and judge failures are reported, never skipped. Judge output that can't be parsed is an error, not a tie.
 - **The judge can't be steered by the data it judges.** Case inputs and agent outputs are embedded with `<` and `>` escaped, so an output cannot close its block and inject criteria. This matters because the tool optimizes prompts against the judge, which is an open door to reward hacking.
-- **Repeatable judgments.** The LLM client always uses temperature 0.
+- **Repeatable judgments.** Order swapping and the self-check measure how consistent the judge is, on every run. The client sends no temperature by default, because current Claude models and OpenAI reasoning models reject anything but their default. `llm.temperature = 0` is available for models that still accept it.
 - **Reproducibility.** Every report includes the prompt hashes, model IDs and the library version.
 - **Trading demo only:**
   - use months after the model's knowledge cutoff;

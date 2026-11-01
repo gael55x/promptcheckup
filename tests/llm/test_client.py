@@ -95,8 +95,7 @@ def test_posts_chat_request_with_defaults_and_returns_content(http_server, monke
     assert body == {
         "model": "test-model",
         "messages": [{"role": "user", "content": "hello ✓"}],
-        "temperature": 0.0,
-    }
+    }  # no temperature: current Claude and OpenAI reasoning models reject it
     assert llm.usage == Usage(calls=1)
 
 
@@ -107,7 +106,16 @@ def test_sends_no_authorization_when_no_key_variable_is_configured(http_server):
 
     _, headers, body = http_server.requests[0]
     assert "Authorization" not in headers
-    assert body["temperature"] == 0.0  # judgments must be repeatable
+    assert "temperature" not in body
+
+
+def test_sends_temperature_only_when_configured(http_server):
+    llm = local_llm(http_server, temperature=0)
+
+    llm("hello")
+
+    _, _, body = http_server.requests[0]
+    assert body["temperature"] == 0
 
 
 def test_reads_key_at_each_call_and_reports_missing_variable(http_server, monkeypatch):

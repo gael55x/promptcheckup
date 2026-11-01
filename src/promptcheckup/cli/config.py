@@ -68,6 +68,10 @@ RULES = tuple(
         lambda c: type(c.run.max_calls) is int and c.run.max_calls >= 0,
         "run.max_calls must be a non-negative integer",
     ),
+    (
+        lambda c: c.llm is None or c.llm.temperature is None or _temperature(c.llm.temperature),
+        "llm.temperature must be a number from 0 to 2",
+    ),
     (lambda c: _positive(c.agent.timeout_s), "agent.timeout_s must be positive"),
     (lambda c: _positive(c.run.cache_ttl_hours), "run.cache_ttl_hours must be positive"),
 )
@@ -108,6 +112,7 @@ class LLMConfig:
     base_url: str = ""
     model: str = ""
     api_key_env: str = "OPENAI_API_KEY"
+    temperature: float | None = None  # omitted unless set; many current models reject it
 
 
 @dataclass(frozen=True)
@@ -194,6 +199,10 @@ def _text_field(config, key) -> bool:
 
 def _positive(value) -> bool:
     return type(value) in (int, float) and 0 < value < float("inf")
+
+
+def _temperature(value) -> bool:
+    return type(value) in (int, float) and 0 <= value <= 2
 
 
 def _resolved(config: Config) -> Config:

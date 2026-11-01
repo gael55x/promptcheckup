@@ -60,6 +60,21 @@ def test_judge_config_loads_llm_defaults(tmp_path):
 
     assert config.scoring.criteria == "Be correct."
     assert config.llm.api_key_env == "OPENAI_API_KEY"
+    assert config.llm.temperature is None
+
+
+@pytest.mark.parametrize("value", ["-0.1", "2.5", "true", '"0"', "nan"])
+def test_llm_temperature_must_be_a_number_from_0_to_2(tmp_path, value):
+    text = JUDGE_CONFIG + f"temperature = {value}\n"
+
+    with pytest.raises(ConfigError, match="llm.temperature must be a number from 0 to 2"):
+        load_config(write_config(tmp_path, text))
+
+
+def test_llm_temperature_accepts_zero(tmp_path):
+    config = load_config(write_config(tmp_path, JUDGE_CONFIG + "temperature = 0\n"))
+
+    assert config.llm.temperature == 0
 
 
 @pytest.mark.parametrize(
