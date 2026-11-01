@@ -7,6 +7,9 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 dependencies = []
 
+[project.scripts]
+promptcheckup = "promptcheckup.cli.main:main"
+
 [dependency-groups]
 dev = ["pytest==9.1.1", "ruff==0.17.1"]
 
