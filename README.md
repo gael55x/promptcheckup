@@ -1,40 +1,43 @@
+<div align="center">
+
 # promptcheckup
+
+**Know whether a prompt change actually made your AI agent better.**
 
 [![CI](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml/badge.svg)](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Status: pre-release](https://img.shields.io/badge/status-pre--release-orange.svg)](#roadmap)
 
-Know whether a prompt change actually made your AI agent better.
+promptcheckup replays the same cases through your old and new prompt,<br>
+compares them case by case, and answers **better**, **worse** or **not sure yet**.
 
-promptcheckup replays the same cases through your old and new prompt, compares the results case by case, and answers **better**, **worse**, or **not sure yet**. It never guesses.
+<img src="benchmarks/results/naive_vs_paired.svg" alt="Bar chart: comparing prompts on different weeks picked the worse prompt 41.3% of the time; paired replay picked it 0% of the time." width="720">
 
-<p align="center">
-  <img src="benchmarks/results/naive_vs_paired.svg" alt="Bar chart: comparing prompts on different weeks picked the worse prompt 41.3% of the time; paired replay picked it 0% of the time." width="720">
-</p>
-<p align="center"><i>Trading-like simulation, 2,000 runs: the prompt that is truly better, judged two ways.</i></p>
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Roadmap](#roadmap) · [FAQ](#faq)
+
+</div>
 
 > [!NOTE]
-> **Early development.** The statistical gate is built, tested and benchmarked. The agent runner, LLM judge, CLI and GitHub workflows are next. See the [roadmap](#roadmap).
+> **Early development.** The statistical gate is built, tested and benchmarked. The agent runner, LLM judge, CLI and GitHub workflows are next.
 
 ## Highlights
 
-- **Paired replay:** both prompts run on the same inputs, so shared noise (the day's market, an easy question) cancels out instead of deciding the result.
-- **A conservative verdict:** "better" only when a 95% confidence interval clearly excludes zero. With no real difference, it said "better" 2.0–2.7% of the time across every benchmarked noise type ([benchmarks](#benchmarks)).
-- **Built for noisy, skewed outcomes:** a skew guard refuses "better" when a few large losses hide among small gains, the classic trap in trading-agent results.
-- **No dependencies:** the statistics use only the Python standard library, with an exact t quantile and no SciPy.
-- **Framework-agnostic** (planned): one decorator or a shell command connects any agent, in any language.
+| | |
+|---|---|
+| **Paired replay** | Both prompts run on the same inputs, so shared noise (the day's market, an easy question) cancels out instead of deciding the result. |
+| **Conservative verdicts** | "Better" only when a 95% confidence interval clearly excludes zero. With no real difference, it said "better" 2.0–2.7% of the time across every benchmarked noise type. |
+| **Built for skewed outcomes** | A skew guard refuses "better" when a few large losses hide among small gains, the classic trap in trading-agent results. |
+| **Zero dependencies** | Pure Python standard library, including an exact Student t quantile. No SciPy, no NumPy. |
+| **Any agent** *(in progress)* | One decorator or a shell command connects any agent, in any language. |
 
 ## Why
 
-Most prompt changes are judged by running the new prompt for a while and comparing averages. That comparison mostly measures *when* you ran it:
-- a rising market week;
-- an easier batch of questions;
-- a provider update.
+Most prompt changes are judged by running the new prompt for a while and comparing its average score with the old one. That mostly measures *when* each prompt ran: a rising market week, an easier batch of questions, a quiet provider update.
 
-In the simulation above, the naive comparison picked the **worse** prompt in 41% of runs.
+In the simulation above, that comparison picked the **worse** prompt in 41% of runs.
 
-promptcheckup is built on one idea: **compare the two prompts on identical inputs**, then only claim an improvement the data can actually support.
+promptcheckup is built on one idea: **compare both prompts on identical inputs**, and only claim an improvement the data can support.
 
 ## Installation
 
