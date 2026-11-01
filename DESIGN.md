@@ -1,6 +1,6 @@
 # promptcheckup: design for v1.0
 
-**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, the LLM judge, the PR gate and the weekly check-up are built, with their CLI commands (section 15).
+**Status:** v1.0.0. Everything in this design is built and tested; section 15 lists each stage and section 13 its known limitations.
 
 ---
 
@@ -523,7 +523,7 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Evolve and trial ledger | `evolve` with held-out gating and per-round confidence; trial ledger; `run.confidence` (7.9–7.10) | Done | — |
 | Daily-workflow helpers | `promptcheckup.testing`: a pytest-friendly gate and a look-ahead check for time-series agents (6.5); the weekly check-up compares a new prompt with the previous one (7.5 step 4) | Done | — |
 | Validation on real agents | Dogfood on LayeredMemoryTrader over real weeks | Later | 2+ weeks of real check-ups |
-| Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
+| Release | README with every number checked against committed results, changelog, `CITATION.cff`, PyPI trusted publishing with pinned actions | Done (published by the v1.0.0 GitHub release) | One-time trusted-publisher setup on pypi.org |
 
 ## 16. Decisions made
 
