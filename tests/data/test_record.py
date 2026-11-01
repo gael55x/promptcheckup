@@ -10,6 +10,39 @@ from promptcheckup.data import Case, case_id, load_cases
 from promptcheckup.data import record as data_record
 
 
+def test_duplicate_recordings_remain_loadable_across_decorators(tmp_path):
+    path = tmp_path / "recorded.jsonl"
+    calls = []
+
+    def handle(case):
+        calls.append(case)
+        return {"answer": len(calls)}
+
+    first = record(path)(handle)
+    first({"question": "same"})
+    first({"question": "same"})
+    second = record(path)(handle)
+    second({"question": "same"})
+    assert len(calls) == 3
+    assert len(path.read_text().splitlines()) == 1
+    assert len(load_cases([path.name], tmp_path)) == 1
+
+
+def test_record_captures_input_before_function_mutates_it(tmp_path):
+    path = tmp_path / "recorded.jsonl"
+
+    @record(path)
+    def handle(case):
+        case["messages"].append("answer")
+        return case["messages"]
+
+    original = {"messages": ["question"]}
+    assert handle(original) == ["question", "answer"]
+    saved = load_cases([path.name], tmp_path)
+    assert saved[0].input == {"messages": ["question"]}
+    assert saved[0].id == case_id({"messages": ["question"]})
+
+
 def test_record_preserves_metadata_arguments_and_original_output(tmp_path):
     path = tmp_path / "nested" / "recorded.jsonl"
     output = {"answer": "yes"}

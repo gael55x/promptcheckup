@@ -27,6 +27,13 @@ EXIT_CODES = {
     ),
     "propose": lambda result: 0 if result.proposal is not None else 2,
 }
+STATUS_CODES = (
+    (lambda r: r.all_current_failed, 3),
+    (lambda r: r.drift is not None and r.drift.verdict.decision == "worse", 1),
+    (lambda r: r.budget_exhausted or bool(r.errors), 2),
+    (lambda r: r.drift is not None and r.drift.verdict.ci_low is None, 2),
+    (lambda r: r.drift is not None and bool(r.drift.errors), 2),
+)
 
 
 def weekly(args, *, llm=None) -> int:
@@ -43,17 +50,21 @@ def weekly(args, *, llm=None) -> int:
 
 
 def _exit_code(result, command):
-    code = EXIT_CODES[command](result)
-    if code == 1:
-        return code
-    return 2 if result.budget_exhausted else code
+    return next(
+        (code for predicate, code in STATUS_CODES if predicate(result)),
+        EXIT_CODES[command](result),
+    )
 
 
 def planned_checkup_calls(config, n_cases, command, *, n_gate=None) -> dict:
     """Cold-cache estimate for a check-up or proposal, including starter cases when needed."""
     n = n_cases or 20
     gate = planned_calls(n if n_gate is None else n_gate, config.run.samples, config.scoring.mode)
-    drift_calls = gate["judge"] if command == "checkup" else 0
+    drift_calls = (
+        planned_calls(n, config.run.samples, config.scoring.mode)["judge"]
+        if command == "checkup"
+        else 0
+    )
     grade_calls = n if config.scoring.mode == "judge" else 0
     llm_calls = gate["judge"] + drift_calls + grade_calls + 2 + int(not n_cases)
     agent_calls = n * config.run.samples + gate["agent"]
@@ -78,6 +89,7 @@ def _run_project(config, cases, prompts, llm, command):
             prompts,
             llm,
             trial_command=command,
+            holdout_share=config.run.holdout,
             **proposal_settings(config),
         )
 

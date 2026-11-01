@@ -23,10 +23,20 @@ HEADLINES = {
     ),
 }
 NEXT_STEPS = {
-    "the confidence interval includes zero": " Add more cases or let it run again.",
+    "the confidence interval includes zero": " Add more cases.",
 }
 
 CHECKUP_HEADLINES = (
+    (
+        lambda r: r.all_current_failed,
+        lambda r, confidence: f"Check-up failed: all {r.current_runs} runs errored.",
+    ),
+    (
+        lambda r: r.current_errors > 0,
+        lambda r, confidence: (
+            f"Partly checked: {r.current_errors} of {r.current_runs} runs failed. " + _findings(r)
+        ),
+    ),
     (
         lambda r: r.budget_exhausted,
         lambda r, confidence: "Check-up incomplete: call budget reached.",
@@ -55,14 +65,26 @@ CHECKUP_HEADLINES = (
         lambda r: r.proposal is not None,
         lambda r, confidence: (
             f"A prompt change passed the gate: {_improved(r.proposal_verdict, confidence)} "
-            "Review the proposed edit before merging."
+            "Review the proposed edit before merging." + _proposal_drift_context(r)
         ),
     ),
     (
-        lambda r: bool(r.patterns),
-        lambda r, confidence: f"Stable. No drift and {len(r.patterns)} failure pattern(s) found.",
+        lambda r: r.drift is not None and r.drift.verdict.ci_low is None,
+        lambda r, confidence: f"Drift not established: {r.drift.verdict.reason}. " + _findings(r),
     ),
-    (lambda r: True, lambda r, confidence: "Stable. No drift and no new failure patterns."),
+    (
+        lambda r: r.drift is None and r.snapshot_saved,
+        lambda r, confidence: "First check-up: baseline saved. " + _findings(r),
+    ),
+    (
+        lambda r: bool(r.errors) or (r.drift is not None and bool(r.drift.errors)),
+        lambda r, confidence: "Check-up found run errors. " + _findings(r),
+    ),
+    (
+        lambda r: r.drift is None,
+        lambda r, confidence: "Drift not checked. " + _findings(r),
+    ),
+    (lambda r: True, lambda r, confidence: "Stable. No drift and " + _findings(r).lower()),
 )
 
 
@@ -93,6 +115,7 @@ def gate_report(
         HEADLINES[evaluation.verdict.decision](evaluation.verdict, digits, confidence),
         _stats(evaluation.verdict, digits, confidence),
         _self_check(evaluation.scores.self_check),
+        _order_agreement(evaluation.scores.order_agreement),
         _top_cases(evaluation, digits),
         _failures(evaluation.errors),
         _usage(evaluation),
@@ -138,6 +161,12 @@ def _self_check(check) -> str:
         " The judge is unreliable for these criteria: "
         "try sharper criteria or a stronger judge model."
     )
+
+
+def _order_agreement(agreement):
+    if agreement is None:
+        return ""
+    return f"Judge order agreement on A vs B: {_percent(agreement)}%."
 
 
 def _top_cases(evaluation, digits) -> str:
@@ -226,6 +255,7 @@ def checkup_report(result, *, version, confidence=0.95) -> str:
         headline,
         _drift_details(result),
         _pattern_details(result.patterns),
+        _current_failures(result.failures),
         _proposal_details(result, confidence),
         _synthetic_share(result.synthetic_share),
         _failures(result.errors),
@@ -236,6 +266,32 @@ def checkup_report(result, *, version, confidence=0.95) -> str:
         _provenance({"current": result.prompts_hash}, version),
     ]
     return "\n\n".join(section for section in sections if section) + "\n"
+
+
+def _findings(result):
+    if result.patterns:
+        return f"{len(result.patterns)} failure pattern(s) found."
+    return "No new failure patterns."
+
+
+def _proposal_drift_context(result):
+    if result.drift is None:
+        return " First check-up: baseline saved." if result.snapshot_saved else ""
+    if result.drift.verdict.ci_low is None:
+        return f" Drift not established: {result.drift.verdict.reason}."
+    return ""
+
+
+def _current_failures(failures):
+    if not failures:
+        return ""
+    rows = [
+        f"| {_cell(key)} | {_output(output)} | {_cell(reason)} |"
+        for key, _, output, reason in failures
+    ]
+    return "Current failures:\n\n| Case | Output | Reason |\n| --- | --- | --- |\n" + "\n".join(
+        rows
+    )
 
 
 def _drift_details(result):
@@ -294,7 +350,7 @@ def _proposal_details(result, confidence=0.95):
             + _stats(verdict, _decimals(verdict), confidence)
         )
     if result.proposal_rejection is not None:
-        return f"Proposal rejected: {_cell(result.proposal_rejection)}."
+        return _rejected_proposal_details(result)
     if result.proposal_verdict is not None:
         return f"A proposed fix did not pass the gate: {_cell(result.proposal_verdict.reason)}."
     if result.budget_exhausted:
@@ -302,6 +358,16 @@ def _proposal_details(result, confidence=0.95):
             "Proposal not completed: call budget reached; raise run.max_calls or use fewer cases."
         )
     return "No proposal: no failing cases."
+
+
+def _rejected_proposal_details(result):
+    if result.untested_proposal is not None:
+        return (
+            f"Proposal {_cell(result.proposal_rejection)}.\n\n"
+            f"Rationale: {_cell(result.untested_proposal.rationale)}\n\n"
+            f"Cited cases: {_cell(', '.join(result.untested_proposal.cited_case_ids))}."
+        )
+    return f"Proposal rejected: {_cell(result.proposal_rejection)}."
 
 
 def _synthetic_share(share):
@@ -312,9 +378,10 @@ def _synthetic_share(share):
 def proposal_report(result, *, originals, version, confidence=0.95) -> str:
     """Include the gate findings and reviewable file diffs for the workflow's PR body."""
     text = checkup_report(result, version=version, confidence=confidence)
-    if result.proposal is None:
+    proposal = result.proposal or result.untested_proposal
+    if proposal is None:
         return text
-    return text + _prompt_diff(originals, result.proposal.prompts)
+    return text + _prompt_diff(originals, proposal.prompts)
 
 
 def _prompt_diff(originals, prompts):

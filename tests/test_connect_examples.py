@@ -26,7 +26,8 @@ def test_plain_example_doctor(tmp_path, capsys):
     path = example(tmp_path, "plain")
     assert main(["doctor", "--config", str(path / "promptcheckup.toml"), "--no-llm"]) == 0
     output = capsys.readouterr().out
-    assert "warn" not in output and "fail" not in output
+    assert "fail" not in output
+    assert "10 held-out cases, need at least 20" in output
 
 
 def test_node_example_doctor(tmp_path, capsys):
@@ -35,7 +36,8 @@ def test_node_example_doctor(tmp_path, capsys):
     path = example(tmp_path, "node_cmd")
     assert main(["doctor", "--config", str(path / "promptcheckup.toml"), "--no-llm"]) == 0
     output = capsys.readouterr().out
-    assert "warn" not in output and "fail" not in output
+    assert "fail" not in output
+    assert "10 held-out cases, need at least 20" in output
 
 
 @pytest.mark.parametrize("name", ["openai_sdk", "anthropic_sdk"])

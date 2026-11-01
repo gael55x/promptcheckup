@@ -4,6 +4,7 @@ import hashlib
 import json
 import time
 from collections.abc import Callable, Sequence
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
@@ -41,12 +42,14 @@ class Cache:
         self.agent_version = agent_version
         self.clock = clock
 
-    def _path(self, prompts_hash: str, case_id: str, sample: int) -> Path:
-        key = json.dumps([prompts_hash, case_id, sample, self.agent_version])
+    def _path(self, prompts_hash: str, case_id: str, sample: int, input_hash: str = "") -> Path:
+        key = json.dumps([prompts_hash, case_id, sample, self.agent_version, input_hash])
         return self.directory / f"{hashlib.sha256(key.encode('utf-8')).hexdigest()[:24]}.json"
 
-    def get(self, prompts_hash: str, case_id: str, sample: int) -> tuple[bool, Any]:
-        path = self._path(prompts_hash, case_id, sample)
+    def get(
+        self, prompts_hash: str, case_id: str, sample: int, *, input_hash=""
+    ) -> tuple[bool, Any]:
+        path = self._path(prompts_hash, case_id, sample, input_hash)
         entry = fallback(
             lambda: _cache_entry(path),
             lambda error: None,
@@ -62,10 +65,18 @@ class Cache:
             return False, None
         return True, output
 
-    def put(self, prompts_hash: str, case_id: str, sample: int, output: Any) -> None:
+    def put(
+        self, prompts_hash: str, case_id: str, sample: int, output: Any, *, input_hash=""
+    ) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
         entry = {"created_at": self.clock(), "output": output}
-        self._path(prompts_hash, case_id, sample).write_text(json.dumps(entry), encoding="utf-8")
+        self._path(prompts_hash, case_id, sample, input_hash).write_text(
+            json.dumps(entry), encoding="utf-8"
+        )
+
+    def discard(self, prompts_hash, case_id, sample, *, input_hash="") -> None:
+        """Remove stale evidence before refreshing it, including refreshes that fail."""
+        self._path(prompts_hash, case_id, sample, input_hash).unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)
@@ -133,15 +144,23 @@ def _cache_entry(path: Path) -> tuple[float, Any]:
 def _planned_pairs(cases, samples, cache, hashes):
     for case in cases:
         for sample in range(samples):
-            yield (
-                case,
-                [_cached_run(cache, hashes[side], case.id, side, sample) for side in hashes],
-            )
+            pair = [_cached_run(cache, hashes[side], case, side, sample) for side in hashes]
+            yield case, _whole_pair(pair)
 
 
-def _cached_run(cache, prompts_hash, case_id, side, sample) -> Run:
-    found, output = cache.get(prompts_hash, case_id, sample) if cache else (False, None)
-    return Run(case_id, side, sample, output=output, cached=found)
+def _whole_pair(pair):
+    if all(run.cached for run in pair):
+        return pair
+    return [replace(run, output=None, cached=False) for run in pair]
+
+
+def _cached_run(cache, prompts_hash, case, side, sample) -> Run:
+    found, output = (
+        cache.get(prompts_hash, case.id, sample, input_hash=prompt_hash(case.input))
+        if cache
+        else (False, None)
+    )
+    return Run(case.id, side, sample, output=output, cached=found)
 
 
 def _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes) -> Replay:
@@ -151,6 +170,7 @@ def _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes) ->
         needed = sum(not run.cached for run in pair)
         if calls + needed > max_calls:
             return Replay(runs, calls, budget_exhausted=True)
+        _discard_pair(cache, hashes, case, pair)
         runs.extend(
             _complete_run(
                 agent, case, run, prompts[run.prompt_set], timeout_s, cache, hashes[run.prompt_set]
@@ -161,14 +181,31 @@ def _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes) ->
     return Replay(runs, calls, budget_exhausted=False)
 
 
+def _discard_pair(cache, hashes, case, pair):
+    if cache is None:
+        return
+    for run in pair:
+        if not run.cached:
+            cache.discard(
+                hashes[run.prompt_set], case.id, run.sample, input_hash=prompt_hash(case.input)
+            )
+
+
 def _complete_run(agent, case, run, prompts, timeout_s, cache, prompts_hash) -> Run:
     if run.cached:
         return run
     result = fallback(
-        lambda: replace(run, output=call_agent(agent, case.input, prompts, timeout_s=timeout_s)),
+        lambda: replace(run, output=_isolated_call(agent, case.input, prompts, timeout_s)),
         lambda error: replace(run, error=str(error)),
         AgentError,
     )
     if cache and result.error is None:
-        cache.put(prompts_hash, case.id, run.sample, result.output)
+        cache.put(
+            prompts_hash, case.id, run.sample, result.output, input_hash=prompt_hash(case.input)
+        )
     return result
+
+
+def _isolated_call(agent, case_input, prompts, timeout_s):
+    output = call_agent(agent, deepcopy(case_input), deepcopy(prompts), timeout_s=timeout_s)
+    return deepcopy(output)

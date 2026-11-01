@@ -15,14 +15,18 @@ The provider drop persists. The real fix adds 1 noise SD to initial quality; the
 unreviewed version is 1 SD below initial quality. Harmless provider wording is an
 unscored output field. Only the two scripted proposal weeks submit changed text;
 otherwise the stub returns unchanged text, rejected by the library before gating.
-Kept edits are treated as reviewed and merged before the next weekly run.
+Kept edits are treated as reviewed and merged before the next weekly run. With the
+default 50 cases and holdout share 0.5, proposals learn on 25 cases and are gated on
+25 held-out cases. The unreviewed version therefore drops 2 SD after a kept real
+fix, or 1 SD otherwise; derive each repeat's stratum from its real_fix outcome.
 
 Detection windows include the incident week and its next two weeks (or the available
 tail for short runs). A later drift flag is temporal association, not attribution:
 the library replaces its snapshot each week, so it does not accumulate evidence of
 a persistent drop. Quiet weeks in those windows still count as false alarms.
-The first week counts in the quiet-week denominator even without a baseline. New
-prompt hashes compare with the latest earlier prompt snapshot, as in the weekly workflow.
+Quiet-week rates exclude each repeat's first week, which has no baseline to compare.
+Check-ups compare with the latest snapshot, whether it uses the same or a previous
+prompt. The separate null check also gates on the 25 held-out cases by default.
 """
 
 import argparse
@@ -38,6 +42,7 @@ from types import MappingProxyType
 
 from promptcheckup.checkup.checkup import checkup
 from promptcheckup.checkup.evaluate import evaluate, score_mode
+from promptcheckup.checkup.split import split_cases
 from promptcheckup.data import Case
 
 RESULTS = Path(__file__).parent / "results"
@@ -50,6 +55,7 @@ PROMPT_TEXT = (
 
 
 NULL_SEED = 10_000  # null-check seeds start beyond any year's repeat seeds
+HOLDOUT_SHARE = 0.5  # the CLI default for run.holdout
 
 
 @dataclass(frozen=True)
@@ -251,6 +257,7 @@ def run_week(config, context, cases, current, incident, directory):
         samples=config.samples,
         max_calls=3 * config.cases * config.samples + 2,
         agent_version=context.provider,
+        holdout_share=HOLDOUT_SHARE,
     )
     if result.budget_exhausted or result.errors or not result.snapshot_saved:
         raise RuntimeError("simulation check-up failed or did not save a complete snapshot")
@@ -332,7 +339,11 @@ def metrics(rows: list[dict]) -> dict:
         by_repeat[row["repeat"]].append(row)
     incidents = [incident_rates(incident, rows, by_repeat) for incident in INCIDENTS]
     by_kind = {item["incident"]: item for item in incidents}
-    quiet = [row["drift_decision"] == "worse" for row in rows if row["incident"] == "quiet"]
+    quiet = [
+        row["drift_decision"] == "worse"
+        for row in rows
+        if row["incident"] == "quiet" and row["drift_decision"] != "no_baseline"
+    ]
     return {
         "incidents": incidents,
         "quiet_false_alarm_rate": rate(quiet),
@@ -393,7 +404,7 @@ def null_trial(config: Config, trial: int, current: dict, useless: dict) -> str:
     run = make_agent(config, Week(NULL_SEED + trial, 32, 0.0, "original"), [])
     return evaluate(
         lambda case, given, timeout_s: run(case, given),
-        make_cases(config),
+        split_cases(make_cases(config), HOLDOUT_SHARE)[1],  # the week's gate cases
         current,
         useless,
         score_mode(score),
@@ -422,6 +433,13 @@ def main(argv=None) -> None:
     print_summary(config, rows)
     if args.null_trials:
         counts = useless_fix_null_check(config, args.null_trials)
+        write_csv(
+            RESULTS / "useless_fix_null_check.csv",
+            [
+                {"decision": name, "count": count, "trials": args.null_trials}
+                for name, count in counts.items()
+            ],
+        )
         print(
             f"Useless edit gated {args.null_trials} times: "
             + ", ".join(f"{name} {count / args.null_trials:.2%}" for name, count in counts.items())

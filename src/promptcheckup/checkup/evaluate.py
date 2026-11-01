@@ -15,6 +15,13 @@ from promptcheckup.stats import Verdict, decide
 
 DOWNGRADES = (
     (
+        lambda result: result.verdict.decision == "better" and bool(result.errors),
+        lambda result: (
+            f"{len(result.errors)} of {len(result.replay.runs)} runs failed; "
+            "fix the errors and run again"
+        ),
+    ),
+    (
         lambda result: result.budget_exhausted,
         lambda result: "call budget reached; raise run.max_calls or use fewer cases",
     ),
@@ -38,6 +45,7 @@ class Scores:
     completion_tokens: int | None = None
     model: str = ""
     budget_exhausted: bool = False
+    order_agreement: float | None = None
 
 
 class Scorer(Protocol):
@@ -124,6 +132,9 @@ def _judged(llm, criteria, cache, cases, replay, budget, min_pairs) -> Scores:
         False,
         judge_calls=2 * len(limited) + check.calls,
         budget_exhausted=len(limited) < len(items) or check.budget_exhausted,
+        order_agreement=(
+            sum(item.consistent for item in comparisons) / len(comparisons) if comparisons else None
+        ),
     )
 
 

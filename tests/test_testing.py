@@ -11,6 +11,16 @@ from tests.checkup.test_checkup import agent, cases, comparison, score
 OLD = {"system": "0"}
 
 
+def test_assert_better_rejects_failed_runs():
+    def failing(case, prompts):
+        if case["index"] == 0:
+            raise ValueError("failed")
+        return agent(case, prompts)
+
+    with pytest.raises(AssertionError, match="runs failed; fix the errors and run again"):
+        assert_better(failing, cases(25), OLD, {"system": "2"}, score=score)
+
+
 @pytest.mark.parametrize("level,decision", [(2, "better"), (-2, "worse"), (0, "inconclusive")])
 def test_gate_uses_score_with_plain_function(level, decision):
     result = gate(agent, cases(20), OLD, {"system": str(level)}, score=score)
@@ -108,10 +118,46 @@ def test_no_lookahead_fails_at_first_leaking_time_without_mutating_history(histo
     assert history == before
 
 
-def test_no_lookahead_preserves_times_bools_and_other_columns(history):
-    assert_no_lookahead(
-        lambda rows, t: [(row["time"], row["open"], row["name"]) for row in rows], history, [0, 1]
-    )
+def test_no_lookahead_rejects_future_metadata_via_row_removal(history):
+    with pytest.raises(AssertionError, match="reads the future"):
+        assert_no_lookahead(
+            lambda rows, t: [(row["time"], row["open"], row["name"]) for row in rows],
+            history,
+            [0, 1],
+        )
+
+
+def test_no_lookahead_catches_comparison_between_future_prices():
+    history = [{"time": 0, "price": 1}, {"time": 1, "price": 10}, {"time": 2, "price": 10.01}]
+    with pytest.raises(AssertionError, match="reads the future"):
+        assert_no_lookahead(lambda rows, t: rows[-1]["price"] > rows[-2]["price"], history, [0])
+
+
+def test_no_lookahead_catches_future_row_dependency_even_without_numbers():
+    history = [{"time": 0, "status": "closed"}, {"time": 1, "status": "open"}]
+    with pytest.raises(AssertionError, match="reads the future"):
+        assert_no_lookahead(lambda rows, t: rows[1]["status"], history, [0])
+
+
+def test_no_lookahead_random_changes_are_seeded_and_independent(history):
+    calls = []
+
+    def view(rows, time):
+        calls.append(deepcopy(rows))
+        return [row for row in rows if row["time"] <= time]
+
+    assert_no_lookahead(view, history, [0])
+    first = deepcopy(calls)
+    calls.clear()
+    assert_no_lookahead(view, history, [0])
+    assert calls == first
+    assert any(len(rows) == 1 for rows in calls)
+    random_rows = [rows for rows in calls if len(rows) == len(history) and rows != history][-1]
+    ratios = [
+        row["price"] / old["price"] for row, old in zip(random_rows[1:], history[1:], strict=True)
+    ]
+    assert len(set(ratios)) == len(ratios)
+    assert all(0.5 <= ratio <= 1.5 for ratio in ratios)
 
 
 def test_no_lookahead_perturbs_all_future_numeric_columns_only(history):

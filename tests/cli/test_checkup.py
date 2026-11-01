@@ -6,7 +6,7 @@ import pytest
 from promptcheckup.cli.checkup import weekly
 from promptcheckup.cli.main import _parser, main
 from promptcheckup.data import Case, append_cases
-from tests.checkup.test_checkup import llm_stub
+from tests.checkup.test_checkup import block, llm_stub
 
 ORIGINAL = "0\n" + "rule\n" * 9
 
@@ -43,6 +43,92 @@ def execute(project, *options, command="checkup", llm=None):
     return weekly(args, llm=llm or llm_stub(rejected=True))
 
 
+@pytest.mark.parametrize("command", ["checkup", "propose"])
+def test_all_agent_errors_exit_three_without_llm(project, capsys, command):
+    module = next(project.glob("weekly_*.py"))
+    module.write_text(
+        module.read_text().replace(
+            'return (case["index"]', 'raise ValueError("down")\n    return (case["index"]'
+        )
+    )
+    seen = []
+    assert execute(project, command=command, llm=llm_stub(seen=seen)) == 3
+    assert seen == []
+    assert capsys.readouterr().out.startswith("Check-up failed: all 10 runs errored.")
+    assert not (project / ".promptcheckup/snapshots").exists()
+
+
+def test_partial_errors_exit_inconclusive_and_report_counts(project, capsys):
+    module = next(project.glob("weekly_*.py"))
+    module.write_text(
+        module.read_text().replace(
+            'return (case["index"]',
+            'if case["index"] == 0:\n        raise ValueError("down")\n    return (case["index"]',
+        )
+    )
+    assert execute(project) == 2
+    assert capsys.readouterr().out.startswith("Partly checked: 2 of 10 runs failed.")
+
+
+def test_first_checkup_and_too_few_drift_pairs_have_honest_status(project, capsys):
+    assert execute(project) == 0
+    assert capsys.readouterr().out.startswith("First check-up: baseline saved.")
+    path = project / "cases/data.jsonl"
+    path.write_text("\n".join(path.read_text().splitlines()[1:]) + "\n")
+    assert execute(project) == 2
+    assert "need at least 5" in capsys.readouterr().out.splitlines()[0]
+
+
+@pytest.mark.parametrize("command", ["checkup", "propose"])
+def test_memorizing_cli_proposer_cannot_pass_on_cases_it_saw(project, command):
+    from promptcheckup.checkup.evolve import split_cases
+
+    data = [
+        Case(f"record-{i:03d}", {"id": f"record-{i:03d}", "text": f"private-input-{i:03d}"})
+        for i in range(40)
+    ]
+    path = project / "cases/data.jsonl"
+    path.unlink()
+    append_cases(path, data)
+    module = next(project.glob("weekly_*.py"))
+    module.write_text(
+        'def run(case, prompts):\n    return int(case["id"] in prompts["system"])\n'
+        "def score(case, output):\n    return output\n"
+    )
+    seen = []
+    default = llm_stub(seen=seen)
+
+    def memorizing(prompt):
+        if "<examples>" not in prompt:
+            return default(prompt)
+        seen.append(prompt)
+        ids = [row[0] for row in block(prompt, "examples")]
+        return json.dumps(
+            {
+                "prompts": {"system": ORIGINAL + "reward " + " ".join(ids)},
+                "rationale": "Reward examples.",
+                "cited_case_ids": ids,
+            }
+        )
+
+    code = execute(project, command=command, llm=memorizing)
+    assert (project / "system").read_text() == ORIGINAL
+    assert code == (2 if command == "propose" else 0)
+    _, held = split_cases(data, 0.5)
+    requests = "\n".join(seen)
+    assert all(case.id not in requests and case.input["text"] not in requests for case in held)
+
+
+@pytest.mark.parametrize("command,code", [("checkup", 0), ("propose", 2)])
+def test_cli_small_holdout_reports_untested_proposal(project, capsys, command, code):
+    assert execute(project, command=command, llm=llm_stub()) == code
+    assert (project / "system").read_text() == ORIGINAL
+    output = capsys.readouterr().out
+    assert "not tested:" in output and "held-out cases, need at least 5; add cases" in output
+    assert "Improve low scores." in output
+    assert not (project / ".promptcheckup/trials.jsonl").exists()
+
+
 def test_checkup_cli_exit_codes_follow_drift(project, capsys):
     assert execute(project) == 0
     assert execute(project) == 0
@@ -57,23 +143,26 @@ def test_checkup_cli_exit_codes_follow_drift(project, capsys):
 
 @pytest.mark.parametrize("edit,changed", [("2", True), ("-2", False)])
 def test_cli_writes_prompts_only_when_gate_passes(project, edit, changed):
+    append_cases(project / "cases/data.jsonl", [Case(f"c{i}", {"index": i}) for i in range(5, 20)])
     assert execute(project, llm=llm_stub(edit=edit)) == 0
     assert ((project / "system").read_text() != ORIGINAL) is changed
 
 
 def test_cli_writes_report_and_proposal_markdown(project, capsys):
+    append_cases(project / "cases/data.jsonl", [Case(f"c{i}", {"index": i}) for i in range(5, 20)])
     report, proposal = project / "checkup.md", project / "proposal.md"
     assert (
         execute(project, "--out", str(report), "--proposal-out", str(proposal), llm=llm_stub()) == 0
     )
     assert report.read_text().startswith("A prompt change passed the gate")
     assert "Improve low scores." in proposal.read_text()
-    assert "c0" in proposal.read_text() and "system" in proposal.read_text()
+    assert "c1" in proposal.read_text() and "system" in proposal.read_text()
     assert capsys.readouterr().out == ""
 
 
 @pytest.mark.parametrize("edit,code", [("2", 0), ("-2", 2), ("0", 2)])
 def test_propose_cli_exit_codes_and_no_snapshot(project, edit, code):
+    append_cases(project / "cases/data.jsonl", [Case(f"c{i}", {"index": i}) for i in range(5, 20)])
     assert execute(project, command="propose", llm=llm_stub(edit=edit)) == code
     assert not (project / ".promptcheckup/snapshots").exists()
 

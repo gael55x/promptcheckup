@@ -51,8 +51,8 @@ def load_snapshot(directory, prompts_hash) -> Snapshot | None:
     )
 
 
-def load_latest_snapshot(directory, *, excluding) -> tuple[str, Snapshot] | None:
-    """Return the newest valid evidence from another prompt, or a cache miss."""
+def load_latest_snapshot(directory, *, excluding="") -> tuple[str, Snapshot] | None:
+    """Return the newest valid evidence, optionally excluding one prompt hash."""
     candidates = []
     for path in sorted(_path(directory, excluding).parent.glob("*.json")):
         if path.stem == excluding:

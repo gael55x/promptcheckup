@@ -33,8 +33,7 @@ def report(result):
         ([-2] * 5, "B is worse: 5 of 5 cases regressed (95% CI -2.00 to -2.00)."),
         (
             [0] * 5,
-            "Not sure yet: the confidence interval includes zero. "
-            "Add more cases or let it run again.",
+            "Not sure yet: the confidence interval includes zero. Add more cases.",
         ),
     ],
 )

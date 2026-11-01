@@ -84,6 +84,48 @@ def test_failed_runs_are_reported_and_excluded_from_scores():
     assert len(result.errors) == 2
     assert all("cannot answer" in run.error for run in result.errors)
     assert result.scores.per_case == [(case.id, 2.0) for case in cases()[1:]]
+    assert result.verdict.decision == "inconclusive"
+    assert result.verdict.reason == "2 of 100 runs failed; fix the errors and run again"
+
+
+def test_failed_majority_cannot_make_survivors_better():
+    def failing(case, prompts):
+        if prompts["system"] == "1" and case["index"] >= 20:
+            raise ValueError("cannot answer")
+        return {"value": 0.5 if prompts["system"] == "0" else 1}
+
+    result = evaluate(
+        function_agent(failing),
+        cases(100),
+        {"system": "0"},
+        {"system": "1"},
+        score_mode(lambda case, output: output["value"]),
+        samples=1,
+        timeout_s=1,
+        max_calls=200,
+        min_pairs=20,
+        cache=None,
+    )
+    assert result.verdict.decision == "inconclusive"
+    assert result.verdict.n == 20
+    assert result.verdict.reason == "80 of 200 runs failed; fix the errors and run again"
+
+
+@pytest.mark.parametrize("new,decision", [("2", "inconclusive"), ("-2", "worse")])
+def test_single_failed_a_run_blocks_only_better(new, decision):
+    calls = []
+
+    def failing(case, prompts):
+        calls.append(prompts["system"])
+        if len(calls) == 1:
+            raise ValueError("A failed")
+        return agent(case, prompts)
+
+    result = run_evaluation(score_mode(score), function=failing, new=new)
+    assert len(result.errors) == 1
+    assert result.verdict.decision == decision
+    if decision == "inconclusive":
+        assert result.verdict.reason == "1 of 100 runs failed; fix the errors and run again"
 
 
 def test_score_mode_averages_only_complete_successful_pairs():
@@ -137,6 +179,33 @@ def test_position_biased_judge_is_downgraded():
     assert result.verdict.decision == "inconclusive"
     assert result.verdict.reason.startswith("judge unreliable: ")
     assert result.scores.self_check.reliable is False
+
+
+def test_gate_reports_existing_ab_order_agreement_without_extra_calls():
+    from promptcheckup.checkup.report import gate_report
+
+    seen = []
+
+    def judge(prompt):
+        seen.append(prompt)
+        return (
+            position_judge(prompt)
+            if block(prompt, "case_input")["index"] < 5
+            else content_judge(prompt)
+        )
+
+    result = run_evaluation(judge_mode(judge, "Higher value is better."))
+    report = gate_report(result, prompt_hashes={}, version="test")
+    assert "Judge order agreement on A vs B: 80%." in report
+    assert len(seen) == result.scores.judge_calls == 150
+
+
+def test_order_agreement_is_absent_without_judged_pairs():
+    from promptcheckup.checkup.report import gate_report
+
+    result = run_evaluation(judge_mode(content_judge, "Higher value is better."), max_calls=0)
+    assert result.scores.order_agreement is None
+    assert "Judge order agreement" not in gate_report(result, prompt_hashes={}, version="test")
 
 
 def test_redaction_precedes_all_judgments_including_self_check():

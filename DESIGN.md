@@ -1,6 +1,6 @@
-# promptcheckup: design for v1.0
+# promptcheckup: design for v1.1.0
 
-**Status:** v1.0.0. Everything in this design is built and tested; section 15 lists each stage and section 13 its known limitations.
+Status: v1.1.0. The implementation is built and tested with offline tests and simulations. Saved real-model gate reports come from 0.0.1; validation of real agents over weeks is still Later in section 15. Section 13 records known limitations.
 
 ---
 
@@ -15,10 +15,7 @@ You give it three things:
 - your prompt files;
 - some cases.
 
-In return it tells you, honestly, whether a prompt change made the agent better. It also gives you a weekly check-up of how your agent is doing.
-
-**The one promise:**
-> Your agent's prompt improves from real outcomes, and nothing changes unless a paired replay proves it's better.
+It compares prompt versions on the same cases and reports better, worse or not sure yet. It also checks for changes since the latest weekly snapshot. Proposed edits are written only when the configured gate accepts them.
 
 ## 2. Where the ideas come from
 
@@ -28,7 +25,7 @@ In return it tells you, honestly, whether a prompt change made the agent better.
 | Gate: compare decisions on the same inputs so shared noise cancels | MemTrial, [arXiv 2610.11732](https://arxiv.org/abs/2610.11732) | CC BY 4.0 |
 | Small, attributable rule edits with validation; audit trail | SHARP, [arXiv 2605.06822](https://arxiv.org/abs/2605.06822) | arXiv non-exclusive |
 | Prior art: feedback-driven prompt optimization for a trading agent | ATLAS, [arXiv 2510.15949](https://arxiv.org/abs/2510.15949) | not checked |
-| Prior art: reflective prompt evolution | GEPA (Agrawal et al., 2025) | not checked |
+| Prior art: reflective prompt evolution | [GEPA](https://arxiv.org/abs/2507.19457) (Agrawal et al., 2025) | not checked |
 
 **Rules that follow from this table:**
 - Implement everything from the paper descriptions only.
@@ -40,7 +37,7 @@ In return it tells you, honestly, whether a prompt change made the agent better.
 
 ## 3. Design principles
 
-1. **Value on every use.** Every run produces at least one concrete finding, or a two-second "stable, nothing changed".
+1. **Report what was checked.** "Stable" requires a clean drift comparison. First runs, partial failures, all-failed runs and insufficient drift evidence have separate headlines.
 2. **Conservative gate.** When the evidence is unclear, the verdict is "not sure yet". A false "better" is the worst bug this product can have.
 3. **The user's infrastructure, the user's repo.** Nothing leaves the user's machine or CI except calls to the LLM endpoint they configured. There is no telemetry. Prompts are files in git, so rollback is `git revert`.
 4. **One-line integration.** The agent stays unchanged, except that it must read its prompt from a file instead of a hard-coded string.
@@ -57,11 +54,13 @@ In return it tells you, honestly, whether a prompt change made the agent better.
 | Overnight, on demand | `promptcheckup evolve` | A prompt that beat the current one on held-out cases, round by round, with the full lineage, ready for review | One PR to review in the morning |
 
 **Every report starts with one plain sentence.** Statistics come after it. The headline is built from the verdict data by a fixed template, not written by an LLM. Only the failure-pattern descriptions come from the LLM. Examples:
-- "B is better: it stopped refusing refund questions (7 cases)."
-- "Your agent got worse this week without a prompt change (likely a provider update): 6 of 20 cases regressed."
+- "First check-up: baseline saved. No new failure patterns."
+- "Partly checked: N of M runs failed. No new failure patterns."
+- "Check-up failed: all N runs errored." (exit 3)
+- "Drift not established: need at least 20 cases, got N. No new failure patterns."
 - "Stable. No drift and no new failure patterns."
 
-**Before any run, the CLI prints the planned call count and asks for confirmation.** In CI, `--yes` skips the prompt. Cost is always capped by `max_calls`.
+`gate`, `checkup`, `propose` and `evolve` print a call plan and ask for confirmation; `--yes` skips it. `max_calls` counts logical agent and model calls, not provider requests or money. Each model call may retry up to `max_retries` times (default 2), and an agent call may make several provider calls. Doctor uses its own fixed diagnostic plan without confirmation.
 
 ## 5. Architecture
 
@@ -144,7 +143,7 @@ These rules hold for every module. CI enforces the first one.
 src/promptcheckup/
   __init__.py          public API
   stats/  data/  runner/  llm/      built
-  checkup/  cli/                    planned, created with their first module
+  checkup/  cli/                    built
 tests/
   stats/  data/  runner/  llm/      one test file per module
   examples/test_planted.py
@@ -188,7 +187,7 @@ from promptcheckup import record
 def handle(case: dict) -> dict: ...
 ```
 
-`@record` only captures the function's input and output. It does **not** intercept tool calls (see section 12).
+`@record` copies the input before the call, redacts the recorded values and skips duplicate case IDs. It captures input and output, without intercepting tool calls (see section 12).
 
 ### 6.3 Config: `promptcheckup.toml`, written by `init`
 
@@ -224,7 +223,8 @@ max_calls = 400
 cache_ttl_hours = 24
 agent_version = ""                 # optional, e.g. "gpt-5-mini@2026-10"; shown in drift reports
 min_pairs = 20
-confidence = 0.95                  # base confidence for every gate; evolve raises it per round
+confidence = 0.95                  # evolve sets one stricter confidence for all planned rounds
+holdout = 0.5                      # learning/held-out split for checkup and propose
 redact = ""                        # optional "module:function"
 ```
 
@@ -235,12 +235,12 @@ promptcheckup init                                   # writes config, workflows,
 promptcheckup gate --old-ref origin/main            # old prompts from git, new from working tree
 promptcheckup gate --old prompts/a.md --new prompts/b.md
 promptcheckup checkup                               # drift + patterns + maybe a proposal
-promptcheckup propose                               # proposal only; gate it yourself
+promptcheckup propose                               # learn a proposal and gate it on held-out cases
 promptcheckup evolve --rounds 5 --holdout 0.3       # iterate proposals, gated on held-out cases
 promptcheckup doctor                                # check the wiring before a real run
 ```
 
-**Common options:**
+Options for `gate`, `checkup`, `propose` and `evolve` only (not `init` or `doctor`):
 - `--yes`
 - `--out report.md`
 - `--json result.json`
@@ -251,7 +251,7 @@ promptcheckup doctor                                # check the wiring before a 
 - `2`: inconclusive (for `evolve`: no round passed)
 - `3`: configuration or runtime error
 
-`doctor` exits 0 when no check failed (warnings allowed) and 3 otherwise. `evolve` exits 0 when at least one round passed.
+`checkup` exits 3 if all current runs errored; partial failures exit 2 unless drift was detected (exit 1). A first check-up saves a baseline and may exit 0, without being labelled stable. `doctor` exits 0 when no check failed (warnings allowed) and 3 otherwise. `evolve` exits 0 when at least one round passed.
 
 ### 6.5 Testing helpers: `promptcheckup.testing`
 
@@ -269,20 +269,21 @@ def test_agent_cannot_see_the_future():
 
 - `gate(agent, cases, old, new, *, score=None, judge=None, criteria="", samples=2, min_pairs=20, confidence=0.95, max_calls=400) -> Evaluation` runs the same `evaluate` as the CLI. The agent is a plain `run(case, prompts)` function, and cases are `Case` objects or input dicts. Exactly one of `score` or `judge` (an LLM callable, with `criteria`) is required.
 - `assert_better(...)` passes on "better". `assert_not_worse(...)` passes unless the verdict is "worse". On failure, the message is the report's headline plus its stats line.
-- `assert_no_lookahead(view, history, decision_times, *, time_key="time")` handles a history of rows (dicts) with a time column. For each decision time it perturbs every number in every later row and requires `view(history, t)` to return an identical result. It fails naming the first decision time whose input changed. For other data shapes, the guide shows the same pattern written by hand, as in the trading example.
+- `assert_no_lookahead(view, history, decision_times, *, time_key="time")` handles a history of rows (dicts) with a time column. For each decision time it checks an affine change to future numbers, an independent random perturbation of each future number, and removal of future rows. Each check requires `view(history, t)` to return an identical result, while leaving time keys and booleans unchanged. This checks specific transformations; it does not establish the absence of every possible leak. It fails naming the first decision time whose input changed. For other data shapes, the guide shows the same pattern written by hand, as in the trading example.
 
 ## 7. Core algorithms
 
 ### 7.1 Replay
 
 1. For each case and each sample index `s` in `0..k-1`, run the agent with prompt set A and with prompt set B.
-   - Run them **back-to-back for the same case**, not as two separate batches. This keeps both runs as close in time as possible, which limits noise from live tools (section 13).
-2. Outputs are cached in `.promptcheckup/cache/`. The cache key is `(prompt_hash, case_id, sample, agent_version)`, where `agent_version` is an optional config string. The library cannot see which model the agent uses internally.
+   - Each run receives its own deep copies of the case input and prompts; outputs are copied before storage. Run both prompts **back-to-back for the same case**, not as two separate batches. This keeps both runs as close in time as possible, which limits noise from live tools (section 13).
+2. Outputs are cached in `.promptcheckup/cache/`. The cache key is `(prompt_hash, case_id, sample, agent_version, input_hash)`, where `agent_version` is an optional config string. The library cannot see which model the agent uses internally.
+   - Reuse a pair only if both prompts' outputs for the case and sample are cached. Otherwise discard the partial pair and run both again back to back.
    - **Cache entries expire after `cache_ttl_hours` (default 24).**
    - This matters because a pair is only fair if A and B ran under the same conditions. Reusing an old-prompt output from last week would mix in any provider changes since then and break the pairing.
    - Comparisons across time are the drift check's job (7.5), using an explicit snapshot rather than the cache.
 3. If the call cap is reached, stop. The run then reports "inconclusive (budget)". It never reports a partial verdict as if it were final.
-4. If an agent call errors or times out, that case is recorded as a failure for that prompt set. Errors are never silently dropped, and they are listed in the report.
+4. If an agent call errors or times out, that case is recorded as a failure for that prompt set. Errors are listed in the report. Any failed run under either prompt downgrades an otherwise "better" verdict to "not sure yet", with the failed-run count and reason.
 
 ### 7.2 Per-case paired difference `d_c`
 
@@ -298,7 +299,7 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
 
 ### 7.3 Gate decision
 
-1. If `n_cases < min_pairs` (default **20**), the verdict is **inconclusive** ("need more cases").
+1. If `n_cases < min_pairs` (20 by default, configurable down to 5), the verdict is **inconclusive** ("need more cases").
 2. Otherwise, compute a 95% **paired t** confidence interval of `mean(d)`.
    - Values are rescaled into [−1, 1] first, so very small or very large scores neither underflow nor overflow.
    - The t quantile is computed exactly: the integer-df Student t CDF (Abramowitz & Stegun 26.7.3), inverted by bisection. No SciPy is needed. Supported confidence levels are 0.5–0.999.
@@ -314,19 +315,18 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
    - The second condition was added after a real example (19 of 20 cases improved, one tiny loss) was wrongly blocked. Small losses cannot hide a tail.
    - A "worse" verdict is downgraded the same way: skewness above +0.5 and at least one gain bigger than the average loss.
    - Judge mode turns the guard off. Its scores are bounded in [−1, 1], so a rare huge loss is impossible, and a genuine improvement (mostly wins) is itself negatively skewed.
-5. **Why this design** (measured; the full numbers are in `benchmarks/`):
-   - A percentile bootstrap was tried first. With 10–20 cases and no real difference, it said "better" up to 5% of the time, against a 2.5% target.
-   - The plain t-interval meets the target on symmetric noise. On crash-skewed P&L (small gains most days, rare large losses) it said "better" **9–13%** of the time. A bootstrap-t (studentized bootstrap) only reduced that to 6–9%.
-   - The skew guard brings crash-skewed false "better" to **2.0% at 20 cases and about 0% at 50+**, and keeps every symmetric noise type at 2.2–2.7%.
-   - The cost: on symmetric data at 20 cases, the guard also blocks some real improvements. Detection of a large (0.8 SD) improvement falls from about 93% to 82%. In the trading scenario, paired replay picks the better prompt 91.7% of the time, says "not sure yet" 8.3% of the time, and never picks the worse one. Accepted, because a false "better" is the worst bug (section 3).
-   - Known remaining worst cases:
-     - mildly skewed data at 20 cases: about 3.2%;
-     - an always-decisive judge (every case ±1) at certain case counts: up to 3.3% at 50 cases.
-     - Both are covered by tests with documented limits.
-6. The report also lists:
+5. Any failed run under either prompt downgrades "better" to "not sure yet", with the reason. Budget exhaustion and an unreliable judge also downgrade the verdict.
+6. **Measured behaviour** (`benchmarks/results/`):
+   - The committed percentile-bootstrap benchmark starts at 20 cases. At 20 cases it gives 3.0% false "better" on normal noise, 4.0% on heavy-tailed noise and 2.8% on judge noise, against a 2.5% target.
+   - On crash-skewed P&L (small gains most days, rare large losses), the plain t-interval gives 8.9–12.7% false "better".
+   - The shipped gate ranges from 0.0–2.7% across the four benchmark noise types. The non-crash types range from 2.2–2.7%; crash-skewed noise gives 2.0% at 20 cases and 0.0% rounded at 50 and 80.
+   - With independent normal per-case differences and an effect of 0.8 per-case SD, the shipped gate detects 82.3% of improvements at 20 cases (2,000 simulations). In the constructed weekly-noise scenario, shared market noise cancels exactly when paired: 91.7% correct, 0.0% wrong (0 of 2,000 runs), and 8.4% not sure yet.
+   - Known worst cases, both covered by `tests/stats/test_gate.py` with a 3.5% limit: an always-decisive judge (every case ±1) at 50 cases, where exact enumeration gives 3.2% rounded; and mildly skewed data at 20 cases, 112/4,000 (2.8%) with the test seed.
+7. The report also lists:
    - win, loss and tie counts;
    - the 3 cases with the largest `|d_c|`, with A and B outputs side by side;
-   - prompt hashes, model IDs, call count and token usage.
+   - prompt hashes, judge model, library version, logical call counts and available judge token usage (the agent's model and tokens are not exposed by the protocol);
+   - "Judge order agreement on A vs B": the share of paired comparisons whose verdicts agree after reversing answer order, separate from the A-vs-A self-check.
 
 ### 7.4 Judge self-check (judge mode only)
 
@@ -336,66 +336,66 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
    - the verdict is **downgraded to inconclusive**;
    - the report says "the judge is unreliable for these criteria" and suggests sharper criteria or a stronger judge model.
 4. If there are fewer usable cases than `min_pairs`, the judge **cannot be checked**, so it is reported as not reliable. It is never certified from too little evidence.
-5. `llm/judge.py` returns this result as a `SelfCheck`. Applying the downgrade and caching per prompt hash happen in the check-up layer.
+5. `llm/judge.py` returns this result as a `SelfCheck`. Applying the downgrade and caching happen in the check-up layer.
 
-This roughly doubles judge cost, so it runs **once per prompt hash** and is cached.
+An A/B comparison costs `2 × cases × samples` judge calls; the self-check costs `2 × cases`, adding about 50.0% at 2 samples. Its cache key includes the judge model, endpoint, criteria, cases, A outputs and `min_pairs`. A cached result costs no calls.
 
 ### 7.5 Drift check (inside `checkup`)
 
-1. Use the current prompt hash on the same cases.
-2. Compare this run's outputs with the **snapshot from the last check-up**, using the same gate logic (7.2–7.3) and A = last snapshot.
-3. **worse** means a "drift" alert. The likely cause is the provider or the environment, because the prompt didn't change. If `agent_version` changed since the snapshot, the report says so.
-4. **No snapshot for this prompt yet?** The prompt changed since the last check-up. Compare with the **most recent snapshot of any prompt** instead, on the cases both share. **worse** then means "worse since the last check-up, which used a different prompt", with both prompt hashes in the report and exit code 1. This catches a prompt merged without running the gate. The cause can be the prompt or the environment; the report says both changed. With no snapshot at all, this is the first check-up.
-5. Save the snapshot. In CI it persists between runs using `actions/cache`. The key includes the prompt hash, and a fallback restore key without it brings back the previous prompt's snapshots after a prompt change.
+1. Run the current prompt on the cases. If all current runs fail, report `Check-up failed: all N runs errored.` and exit 3 without saving a snapshot.
+2. Compare with the latest snapshot of any prompt, on shared cases, using the same gate logic (7.2–7.3). Redact loaded outputs and error text before comparison or reporting.
+3. A "worse" verdict raises a drift alert (exit 1). For "same prompt", provider or environment changes are possible causes. A changed `agent_version` is reported.
+4. Always use the latest snapshot, even if an older snapshot matches the current prompt. Label the baseline "same prompt" or "previous prompt"; for the latter, report both hashes. A regression may reflect the prompt or environment. With no snapshot, say "First check-up: baseline saved." Partial failures say "Partly checked: …"; insufficient drift evidence says "Drift not established: …". "Stable" requires a clean drift comparison, without run errors.
+5. Save a completed current replay as the next snapshot. In CI it persists using `actions/cache`; a fallback restore key without the prompt hash brings back snapshots after a prompt change.
 
 ### 7.6 Failure patterns (inside `checkup`)
 
 1. Find the failing outputs:
-   - in judge mode, `grade()` each current output pass/fail with a one-line reason;
+   - in judge mode, `grade()` one output per case (sample 0) pass/fail with a one-line reason;
    - in score mode, take the bottom 20% of scores.
 2. Make **one** LLM call that groups the failure reasons into at most 3 patterns, each with case IDs.
 
 ### 7.7 Proposal (inside `checkup`, or via `propose`)
 
-1. One LLM call receives the prompt files, the failure patterns and up to 5 failing cases.
+1. `checkup` and `propose` split cases into learning and held-out sets using `run.holdout` (default 0.5). The SHA-256 ID rule is the same as `evolve` (7.9). Failure patterns and the proposal use learning cases only; one proposal call receives the prompts, patterns and up to 5 failing cases.
 2. It returns edited files plus a rationale that cites case IDs. This is the EvolveTrade-style policy update.
 3. The edit is rejected without gating if:
-   - it changes more than 20% of the words in any file, with 30 words always allowed. Words, not lines: a prompt paragraph is often one line, so a line limit would block every edit to a short prompt. The 30-word floor lets a short prompt gain one sentence; or
+   - it changes more than the larger of 20% of a prompt file's words or 30 words; or
    - it cites no cases.
-4. Otherwise it is gated (7.3).
+4. Otherwise it is gated on held-out cases only (7.3). If fewer than `min_pairs` are held out, the proposal and rationale are reported as not tested, without writing the edit. Doctor warns about this. Use at least 40 cases for an even 20/20 split at the defaults; the 20 starter cases support patterns and an untested proposal.
    - If the verdict is **better**, write the edited files into the working tree and the report to the output file. The workflow does the branch, commit and PR. The library only touches git to read the old prompts (`git show`).
    - Otherwise, the issue mentions "a proposed fix did not pass the gate", with its summary.
 
 ### 7.8 Starter cases
 
-This runs when there are no cases yet, or the user asks for it.
+Check-up generates starter cases automatically when there are no cases. There is no separate command to request them.
 1. One LLM call takes the prompt, the agent description and `example_input`.
 2. It generates 20 varied inputs: typical, edge-case and adversarial.
 3. They are written to `cases/starter.jsonl` with `source = "synthetic"`.
 4. Reports show the share of synthetic cases and recommend replacing them with recorded cases.
 
-### 7.9 Evolve: autonomous proposals that cannot fool themselves
+### 7.9 Evolve: proposals tested on held-out cases
 
-A loop that proposes prompt edits and keeps the winners fails in two classic ways. It learns and tests on the same cases, so its edits overfit them. And every extra trial is another chance of a false "better": ten variants at 95% confidence give about a 22% chance of at least one, since each has a 2.5% chance. Quants call this backtest overfitting. `evolve` guards against both.
+Learning and testing on the same cases can overfit them. Multiple tests also increase the chance of a false "better": ten independent tests at a nominal 2.5% rate give about 22%; the union bound is 25.0% without independence. `evolve` separates learning from gating and sets a stricter confidence.
 
-1. **Split the cases by a fixed rule,** never by results. A case is held out when the first 8 hex digits of its ID, read as a fraction, fall below `holdout_share` (default 0.3). The held-out part needs at least `min_pairs` cases, or the run stops with an error naming the numbers.
+1. **Split by SHA-256 of the case ID.** Hold out exactly `round(share × n)` cases (half up), choosing the lowest ID hashes and preserving input order within each set. Any ID works; the split never examines inputs or outcomes. `evolve --holdout` defaults to 0.3; `checkup` and `propose` use `run.holdout`, default 0.5. Evolve requires at least `min_pairs` held-out cases or stops with an error.
 2. **Each round is one proposal pipeline run (7.6–7.7):** current runs, failures and patterns on the **learning** cases only. Then the proposal is gated against the current best on the **held-out** cases. The proposal request never contains a held-out case.
-3. **The bar rises with the number of rounds.** Each round's gate uses confidence `1 − (1 − base) / rounds` (Bonferroni), capped at 0.999, the gate's supported maximum. The chance of keeping any false improvement over the whole run then stays below `(1 − base) / 2`, the same 2.5% as a single gate at the default 95%.
+3. **Confidence is fixed from the planned rounds.** Every round uses `min(0.999, 1 − (1 − base) / rounds)`, stricter than a single gate when multiple rounds are planned and the base is below the cap. The Bonferroni bound of `(1 − base) / 2` requires calibrated gates and a cap that does not bind. It does not hold for multiple rounds at base 0.999, or above 50 rounds at base 0.95. The held-out set is reused and the baseline moves after acceptance, so calibration under this adaptation is an assumption.
 4. **An accepted edit becomes the new baseline.** The run stops at the first round that doesn't pass, when the budget runs out, or after `rounds`. A budget stop keeps only completed rounds.
 5. **Output:** the final prompt files and a lineage report (per round: rationale, cited cases, held-out stats, diff). **It never merges or deploys.** The weekly workflow or a person opens the PR.
 
-Limitations: the held-out set is reused across rounds, which leaks a little information. Bonferroni is conservative, and the round limit keeps the leak small. Fresh cases remain the strongest check.
+Limitations: reusing the holdout reveals acceptance information across rounds. The round limit does not establish how much this affects calibration. Check accepted changes on fresh cases.
 
 ### 7.10 Trial ledger
 
-Every gated comparison is appended to `.promptcheckup/trials.jsonl`: the case set (a hash of the sorted case IDs), both prompt hashes, the decision, the confidence, the command and the time. A damaged line is skipped, like a damaged cache entry. When two or more distinct variants have been gated on the same case set, the gate report adds one line saying how many there were and how many false "better" verdicts that many trials would produce by chance (`n × (1 − confidence) / 2`). It suggests fresh cases or a stricter `run.confidence`. The ledger only reports; it never changes a verdict on its own.
+Every gated comparison is appended to `.promptcheckup/trials.jsonl`: the case set (a hash of the sorted case IDs), both prompt hashes, the decision, the confidence, the command and the time. A damaged line is skipped, like a damaged cache entry. When two or more distinct variants have been gated on the same case set, the gate report adds one line saying how many there were and how many false "better" verdicts that many trials would produce by chance (`n × (1 − confidence) / 2`). The count is distinct candidate prompts on an identical case-ID set, not gate runs; the estimate applies the current confidence to all counted trials. It suggests fresh cases or a stricter `run.confidence`. Inconclusive reports say "Add more cases." rather than suggesting a rerun, because rerunning until a "better" appears is the repeated-testing problem the ledger warns about. The ledger only reports; it never changes a verdict on its own.
 
 ## 8. GitHub integration (templates, not a packaged Action)
 
 `init` writes two workflows:
 
 - **`promptcheckup-gate.yml`**
-  - Trigger: `pull_request` that changes any file listed under `[prompts] files`.
+  - Trigger: `pull_request` changing `prompts/system.md` or `prompts/tools.md`. Edit these template paths to match `[prompts] files`; the workflow does not read the config for its filters.
   - Checks out with `fetch-depth: 0`, so the base ref exists.
   - Runs `promptcheckup gate --old-ref origin/${{ github.base_ref }} --yes --out report.md`, then posts the result with `gh pr comment --body-file report.md`.
   - The gate step uses `continue-on-error: true`, so the check informs rather than blocks. Teams that want a blocking check remove that one line.
@@ -413,20 +413,21 @@ Users add their LLM key as a repository secret. The workflows request the minimu
 
 ## 9. Safeguards (all required in v1.0)
 
-- **Call cap** (`max_calls`) on every run, and a per-call timeout.
+- **Call cap:** `max_calls` caps logical agent and model calls, with a per-call timeout. Model calls may retry up to `max_retries` times (default 2); one agent call may make several provider calls. Doctor uses its own fixed plan. This is not a monetary or provider-request cap.
 - **Redaction:**
-  - `redact()` runs before anything is written to disk or sent to the judge;
+  - `redact()` covers case inputs, agent outputs and agent error text before storage or model calls, including outputs and errors loaded from older snapshots;
+  - prompt text and judge criteria are sent unredacted, by design;
   - `init` documents that recorded cases may contain PII;
   - `.promptcheckup/cache/` is gitignored by default.
 - **Never auto-merge.** Proposals are always PRs for a human to review. `evolve` is no exception: it writes files and a report, never a merge or a deployment.
-- **No self-deception in autonomous runs.** `evolve` learns and gates on disjoint cases split by a fixed rule, and raises the confidence bar with the number of rounds (7.9). The trial ledger reports how many variants were tried on the same cases (7.10).
+- **Separate learning and gating.** `checkup`, `propose` and `evolve` use disjoint cases. Evolve sets one confidence from the planned rounds (7.9). The trial ledger reports how many variants were tried on the same cases (7.10).
 - **Errors are loud.** Agent, scorer and judge failures are reported, never skipped. Judge output that can't be parsed is an error, not a tie.
-- **The judge can't be steered by the data it judges.** Case inputs and agent outputs are embedded with `<` and `>` escaped, so an output cannot close its block and inject criteria. This matters because the tool optimizes prompts against the judge, which is an open door to reward hacking.
-- **Repeatable judgments.** Order swapping and the self-check measure how consistent the judge is, on every run. The client sends no temperature by default, because current Claude models and OpenAI reasoning models reject anything but their default. `llm.temperature = 0` is available for models that still accept it.
-- **Reproducibility.** Every report includes the prompt hashes, model IDs and the library version.
+- **Data block escaping.** Escaping `<` and `>` keeps the blocks intact. Natural-language instructions inside an agent output can still influence the judge; escaping does not prevent judge manipulation.
+- **Repeatable judgments.** Order swapping measures A/B agreement; the separate A/A self-check may be cached (7.4). The client sends no temperature by default, because current Claude models and OpenAI reasoning models reject anything but their default. `llm.temperature = 0` is available for models that still accept it.
+- **Reproducibility.** Gate reports record prompt hashes, the judge model, library version, logical call counts and available judge tokens. The agent protocol does not expose its model or tokens; check-up drift reports also show the configured `agent_version`.
 - **Trading demo only:**
   - a seeded synthetic market with fictional tickers, so the model cannot recall prices and no third-party data ships;
-  - the model sees only data up to the decision day, proven by a test that scrambles every later price and fails on a planted one-day leak;
+  - a check scales every future price for each decision day and requires the model input to stay identical; a separate check detects a planted one-day leak;
   - cases follow a fixed rule chosen before looking at results, never a sample picked by outcome;
   - include a "research tool, not financial advice" notice.
 
@@ -442,7 +443,7 @@ The trading market is synthetic on purpose. A model may remember real historical
 
 ## 11. Test plan (TDD order)
 
-Each step's tests are written and fail before its code is written. Tests use real functions, not mocks. The one exception is the LLM, which is replaced by a stub callable that returns fixed text.
+Tests exercise real functions where practical. Model responses and model factories are stubbed; some tests patch data loaders and stored prices to exercise error paths or look-ahead. The client is tested against a local HTTP server.
 
 | # | Module | Key tests |
 |---|---|---|
@@ -452,11 +453,11 @@ Each step's tests are written and fail before its code is written. Tests use rea
 | 4 | `agents.py` | A Python entrypoint works; a real two-line Node or Python command works through stdin/stdout; timeouts are enforced |
 | 5 | `replay.py` | A second run hits the cache (call count drops); the call cap stops the run and yields inconclusive; agent errors are surfaced |
 | 6 | `client.py`, `grade.py`, `judge.py` | Client: real local HTTP server, retries on 429/5xx/timeouts only, key never in errors, null usage keeps the answer. Grade and judge: order swap is applied; inconsistent judgments count 0; a position-biased stub fails the self-check; a self-check with too few cases is not reliable; unparseable output raises; injected closing tags cannot create extra prompt blocks. Done. |
-| 7 | `starter.py`, `propose.py` | Starter cases match the example input's keys and are labelled synthetic; an edit changing more than 20% of lines or citing no cases is rejected |
+| 7 | `starter.py`, `propose.py` | Starter cases match the example input's keys and are labelled synthetic; an edit changing more than the larger of 20% of a file's words or 30 words, or citing no cases, is rejected |
 | 8 | `checkup.py` | Drift: an injected "model change" stub produces **worse**; with no change the report says "stable"; patterns are capped at 3 |
 | 9 | `report.py`, `cli.py` | Every report starts with a headline sentence; snapshot test of the markdown; exit codes as in 6.4; `init` writes valid TOML and workflow YAML |
 
-**CI:** run `ruff` and `pytest` on push. The test suite makes no network calls.
+**CI:** run `ruff` and `pytest` on push. The test suite makes no external provider requests; HTTP tests start local servers.
 
 ## 12. Deliberately out of scope for v1.0
 
@@ -468,7 +469,7 @@ Each step's tests are written and fail before its code is written. Tests use rea
 | Hosted service, dashboard | Paid version, after free-tier traction |
 | MCP server (`gate` / `propose` as tools for coding agents) | Users request it |
 | Bandit traffic split between prompt versions | After v1.x has real users |
-| TypeScript SDK | The command adapter proves insufficient |
+| TypeScript SDK | The command adapter is insufficient |
 | Pluggable optimizers (GEPA) | Someone needs a stronger proposer |
 | Dollar cost estimates | Users ask; v1.0 shows calls and tokens |
 | Auto-deploying evolved prompts | Never by default; a human reviews and merges |
@@ -478,34 +479,36 @@ Each step's tests are written and fail before its code is written. Tests use rea
 These are deliberate boundaries for v1.0. Document them in the README so users aren't surprised.
 
 1. **Stateful agents.**
-   - The problem: an agent with memory can't be replayed at a single point in time unless that memory is available. LayeredMemoryTrader is an example, with its short, mid and long-term memory and its reflections.
+   - The problem: an agent with memory cannot be replayed at a single point in time unless that memory is available, including any short- and long-term memory and reflections.
    - What works: replay works if either
      - the case includes the memory state from that moment; or
      - the agent can rebuild its state from the case, for example from the date.
-   - Consequence for us: the LayeredMemoryTrader dogfood example (section 14) must store a memory snapshot in each case.
+   - Consequence for us: the planned real trading-agent validation (section 14) must store a memory snapshot in each case.
 2. **Multi-turn conversations.**
    - What works: a case can include the conversation so far.
    - What doesn't: replay cannot simulate how the user would have *reacted* to a different answer.
    - In v1.0, each turn is judged on its own. Simulating users is out of scope.
 3. **Live, non-deterministic tools.**
    - The problem: tools such as web search or live prices add noise, because A and B may see different results.
-   - How v1.0 limits the damage: replay runs A and B back-to-back for each case (7.1). If the noise is still too large, the gate falls back to **inconclusive** rather than giving a wrong verdict.
+   - How v1.0 limits the damage: replay runs A and B back-to-back for each case (7.1). Remaining noise can widen the interval, but pairing does not ensure identical conditions or a correct verdict.
    - Full tool-call replay stays deferred (section 12) until a user needs it.
 4. **Case selection and look-ahead.** Choose cases before seeing results, preferably recorded production inputs or a fixed sampling rule. Keeping samples because they make a change look good is selection by outcome; the gate cannot correct it. Time-series cases must only expose data available at their decision time; see [Choosing cases](docs/connect-your-agent.md#choosing-cases) and the trading example's look-ahead test.
-5. **Unreviewed prompt merges.** Before 7.5 step 4 existed, a newly merged prompt had no drift baseline: in the [simulated year](benchmarks/results/checkup_simulation.csv), **0/200** unreviewed regressions were flagged. The check-up now compares a new prompt with the previous prompt's snapshot (7.5 step 4), and the simulated year flags the same 1 SD regression in **98.5%** of incident weeks. It only notices at the next weekly check-up, after the prompt is live, so run the gate before merging.
+5. **Unreviewed prompt merges.** The check-up compares with the latest snapshot (7.5). In the simulated year it flagged 181/181 regressions after the earlier fix was kept (2 SD drop), and 16/19 otherwise (1 SD drop). It only notices at the next check-up, after the prompt is live; run the gate before merging.
+6. **Unseen tails and dependent cases.** A rare large loss absent from the sample cannot trigger the skew guard. The interval assumes independent cases; overlapping histories or shared conditions can violate that assumption. Use more cases drawn from representative traffic.
+7. **Judge manipulation.** Instructions inside outputs can influence the judge. Escaping preserves block boundaries, without preventing that influence.
 
 ## 14. Validation before launch
 
-The claim must be proven, not just the code. Launch only with these numbers in the README:
+These are validation goals and recorded results. Section 15 distinguishes completed checks from validation still to do:
 
 1. **Accuracy where the truth is known.** On the trading example (score mode), measure:
    - how often the gate's verdict matches the computed truth;
    - the inconclusive rate;
    - calls and tokens per run.
 2. **Judge vs truth.** Run judge mode on the same trading cases and report how often it agrees with score mode. This is how much to trust judge mode elsewhere.
-3. **Dogfood on LayeredMemoryTrader.** Point it at the existing agent's prompts and run 2–3 weekly check-ups. Each case must include that day's memory snapshot (section 13, item 1). This produces real issue screenshots and the launch article.
+3. **Dogfood on a real trading agent.** Point it at the existing agent's prompts and run 2–3 weekly check-ups. Each case must include that day's memory snapshot (section 13, item 1). This produces real issue screenshots and the launch article.
 4. **Run real check-ups for 2+ weeks before launch.** Show actual reports in the README, not mock-ups.
-5. **Simulated year.** 200 seeded repeats × 52 weeks, 50 fixed cases and 2 samples: a persistent 0.5 noise-SD provider drop was flagged **87.5%** in its week / **89.0%** through week +2; the harmless change flagged **2.0% / 7.0%**. Quiet-week false alarms were **215/9,400 (2.3%)**, or **1.075/year**. Real +1 SD fixes were kept **92.5%**; useless edits were rejected **95.0%**. The useless-edit week happens once per year, so its 5.0% kept rate is noisy (binomial 95% CI about 2.4–9.0%); gating the same edit 2,000 more times gave **2.05%** false "better", matching the gate's design. Unreviewed prompt regressions are flagged **98.5% / 99.0%** by comparing with the previous prompt's snapshot (7.5 step 4); before that step existed they were flagged 0%. Windows include the incident week and two following weeks; later drift flags do not establish delayed detection because snapshots roll forward each week. These are planted effects of known size with function stubs, not real users or validation of a real LLM. Reproduce with `PYTHONPATH=src python benchmarks/run_checkup_simulation.py --repeats 200`, then `python benchmarks/charts.py`.
+5. **Simulated year.** `checkup_simulation.csv` has 200 repeats × 52 weeks, 50 fixed cases and 2 samples; proposals are gated on 25 held-out cases. It assumes Gaussian noise, fixed cases, scripted proposals and effects of known size, with no real model. A 0.5 SD provider drop was flagged in 175/200 incident weeks (87.5%); a harmless change in 4/200 (2.0%). Real +1 SD fixes were kept in 181/200 (90.5%); useless edits were rejected in 195/200 (97.5%). Unreviewed regression returns the prompt to version 0: it drops 2 SD after a kept fix to version 2 (181/181 flagged, 100.0%), or 1 SD from starting version 1 otherwise (16/19, 84.2%). Quiet weeks raised 216/9,200 assessable false alarms (2.3%); the 9,400 quiet weeks include 200 first weeks without a baseline. That is 1.08 false alarms per simulated year, not a production expectation. The separate `useless_fix_null_check.csv` records 48 false "better" verdicts in 2,000 gates (2.4%) on the 25 held-out cases. Snapshots roll forward each week, so later flags do not establish delayed detection. Reproduce with `PYTHONPATH=src python benchmarks/run_checkup_simulation.py --repeats 200 --null-trials 2000`, then `python benchmarks/charts.py`.
 
 ## 15. Build order
 
@@ -516,13 +519,13 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Cases and replay | cases, record, agents, replay, cache (tests 3–5) | Done | — |
 | LLM judge | llm client, grader, judge + self-check (test 6) | Done (offline; real runs need a key) | LLM API key and budget for real runs |
 | PR gate and CLI | config, evaluation, gate report, `init` and `gate` commands, gate workflow template | Done | — |
-| Weekly check-up | starter, patterns, propose, snapshots, `checkup` and `propose` commands, check-up workflow (tests 7–9) | Done (verified with Claude Haiku and Opus as judges) | — |
+| Weekly check-up | starter, patterns, propose, snapshots, `checkup` and `propose` commands, check-up workflow (tests 7–9) | Done (offline tests and simulated check-ups; saved hosted-judge evidence is gate reports from 0.0.1) | — |
 | Doctor and integration guide | `doctor`, "Connect your agent" guide with tested examples | Done | — |
 | Examples | Support-bot quickstart with real judge reports; trading example with recorded replies, a look-ahead test and outcome-blind cases | Done | LLM API key and budget (spent) |
 | Simulated year | 52 weekly check-ups with planted incidents, 200 repeats; detection, false alarms, proposal accuracy (section 14, item 5) | Done | — |
 | Evolve and trial ledger | `evolve` with held-out gating and per-round confidence; trial ledger; `run.confidence` (7.9–7.10) | Done | — |
 | Daily-workflow helpers | `promptcheckup.testing`: a pytest-friendly gate and a look-ahead check for time-series agents (6.5); the weekly check-up compares a new prompt with the previous one (7.5 step 4) | Done | — |
-| Validation on real agents | Dogfood on LayeredMemoryTrader over real weeks | Later | 2+ weeks of real check-ups |
+| Validation on real agents | Dogfood on a real trading agent over real weeks | Later | 2+ weeks of real check-ups |
 | Release | README with every number checked against committed results, changelog, `CITATION.cff`, PyPI trusted publishing with pinned actions | Done (published by the v1.0.0 GitHub release) | One-time trusted-publisher setup on pypi.org |
 
 ## 16. Decisions made
@@ -531,11 +534,12 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 |---|---|
 | Product type | Library + CLI + workflow templates |
 | First trace integration | None in v1.0 (`@record` + starter cases) |
-| Statistics | Paired 95% t confidence interval (exact quantile) with a skew guard in score mode; minimum 20 cases; conservative three-way verdict |
+| Statistics | Paired 95% t confidence interval (exact quantile) with a skew guard in score mode; 20 cases by default (`run.min_pairs`, at least 5); conservative three-way verdict |
 | Judge | Pairwise, order-swapped, with a self-check |
 | LLM access | One OpenAI-compatible endpoint; user brings their own key |
 | Autonomy | `evolve` iterates proposals but never merges; held-out gating plus Bonferroni per round |
 | Case selection | By a fixed rule or recorded traffic, never by outcome |
+| Edit limit | Changed words per file: at most 20% of the original words or 30 words, whichever is larger |
 | License | Apache-2.0 |
 | Language | Python 3.11+, standard library only (HTTP via `urllib`; `httpx` was planned but one JSON POST does not need it) |
 
@@ -545,5 +549,5 @@ The claim must be proven, not just the code. Launch only with these numbers in t
   - the judge model;
   - the default size (20 cases × 2 samples);
   - the judge's order-consistency threshold (70%);
-  - the proposal edit limit (20% of lines).
+  - the proposal edit limit (the larger of 20% of a file's words or 30 words).
 - **Patent search.** Do a quick check on Google Patents before the public launch.

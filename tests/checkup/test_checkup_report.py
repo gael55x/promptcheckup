@@ -14,9 +14,9 @@ def result(**changes):
     )
 
 
-def test_stable_checkup_headline_and_first_snapshot():
+def test_first_checkup_headline_reports_saved_baseline():
     text = checkup_report(result(), version="1.2.3")
-    assert text.startswith("Stable. No drift and no new failure patterns.\n")
+    assert text.startswith("First check-up: baseline saved.")
     assert "first check-up: snapshot saved" in text
     assert "Calls: 0" in text and "1.2.3" in text
 
@@ -40,7 +40,7 @@ def test_passed_proposal_headline_summary_and_citations():
     )
     assert text.splitlines()[0] == (
         "A prompt change passed the gate: 5 of 5 cases improved (95% CI +1.00 to +1.00). "
-        "Review the proposed edit before merging."
+        "Review the proposed edit before merging. First check-up: baseline saved."
     )
     assert "Fix a problem." in text and "c1" in text
     assert "| 5 | +1.00 | +1.00 to +1.00 | 5 | 0 | 0 |" in text  # the gate's evidence
@@ -68,6 +68,18 @@ def test_budget_report_cannot_claim_stability():
     text = checkup_report(result(budget_exhausted=True), version="test")
     assert "budget" in text.splitlines()[0]
     assert not text.startswith("Stable")
+
+
+def test_passed_proposal_does_not_hide_insufficient_drift_evidence():
+    text = checkup_report(
+        result(
+            drift=evaluation([0] * 4),
+            proposal=Proposal({"system": "new"}, "Fix a problem.", ["c1"]),
+            proposal_verdict=decide([1] * 5, min_pairs=5),
+        ),
+        version="test",
+    )
+    assert "Drift not established: need at least 5 cases, got 4." in text.splitlines()[0]
 
 
 def test_agent_version_change_is_reported_even_without_drift():

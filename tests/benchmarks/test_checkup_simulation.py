@@ -25,7 +25,7 @@ def tiny(simulation):
         replace(incident, week=week) for week, incident in enumerate(simulation.INCIDENTS, start=2)
     )
     return simulation.Config(
-        weeks=6, repeats=2, cases=20, provider_effect_sd=3, fix_effect_sd=3, incidents=incidents
+        weeks=6, repeats=2, cases=50, provider_effect_sd=3, fix_effect_sd=3, incidents=incidents
     )
 
 
@@ -45,13 +45,16 @@ def test_real_checkup_snapshots_and_stub_call_counts(simulation, tiny, tmp_path)
     rows = simulation.simulation_rows(tiny, tmp_path)
     snapshots = list(tmp_path.rglob(".promptcheckup/snapshots/*.json"))
     assert len(snapshots) >= 6  # original, kept fix and unreviewed version, per repeat
-    assert all(len(json.loads(path.read_text())["runs"]) == 40 for path in snapshots)
+    assert all(len(json.loads(path.read_text())["runs"]) == 100 for path in snapshots)
     assert all(row["calls"] == row["agent_calls"] + row["llm_calls"] for row in rows)
     assert all(row["llm_calls"] == 2 for row in rows)
     quiet = next(row for row in rows if row["incident"] == "quiet")
     real = next(row for row in rows if row["incident"] == "real_fix")
-    assert quiet["calls"] == 42  # 40 samples, patterns, unchanged proposal
-    assert real["calls"] == 122  # another 80 calls for the real paired replay
+    from promptcheckup.checkup.evolve import split_cases
+
+    _, held = split_cases(simulation.make_cases(tiny), 0.5)
+    assert quiet["calls"] == 102  # 100 samples, patterns, unchanged proposal
+    assert real["calls"] == 102 + 4 * len(held)  # fresh paired replay of held-out cases
     assert quiet["drift_decision"] == "no_baseline"
 
 

@@ -1,10 +1,164 @@
 import time
 
+import pytest
+
+from promptcheckup.checkup.evaluate import evaluate, score_mode
 from promptcheckup.data import Case
-from promptcheckup.runner import Cache, function_agent, prompt_hash, replay
+from promptcheckup.runner import Cache, function_agent, prompt_hash, replay, run_prompts
 
 PROMPTS_A = {"system": "Answer briefly."}
 PROMPTS_B = {"system": "Answer briefly and cite the policy."}
+
+
+def test_mutating_input_cannot_make_identical_prompts_better():
+    def agent(case, prompts):
+        case["messages"].append("reply")
+        return len(case["messages"])
+
+    cases = [Case(str(i), {"messages": []}) for i in range(20)]
+    result = evaluate(
+        function_agent(agent),
+        cases,
+        PROMPTS_A,
+        PROMPTS_A,
+        score_mode(lambda case, output: output),
+        samples=2,
+        timeout_s=1,
+        max_calls=80,
+        min_pairs=20,
+        cache=None,
+    )
+    assert result.verdict.decision == "inconclusive"
+    assert result.verdict.mean == 0
+    assert all(run.output == 1 for run in result.replay.runs)
+    assert all(case.input == {"messages": []} for case in cases)
+
+
+def test_mutating_prompts_cannot_change_another_run():
+    def agent(case, prompts):
+        original = prompts["system"]
+        prompts["system"] = "changed"
+        return original
+
+    prompts = dict(PROMPTS_A)
+    result = replay(function_agent(agent), make_cases(2), prompts, prompts)
+    assert all(run.output == PROMPTS_A["system"] for run in result.runs)
+    assert prompts == PROMPTS_A
+
+
+def test_shared_mutable_outputs_are_copied_before_next_call(tmp_path):
+    shared = {"answers": []}
+
+    def agent(case, prompts):
+        shared["answers"].append(prompts["system"])
+        return shared
+
+    cache = Cache(tmp_path)
+    result = replay(
+        function_agent(agent), make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache
+    )
+    assert result.runs[0].output == {"answers": [PROMPTS_A["system"]]}
+    shared["answers"].clear()
+    assert len(result.runs[1].output["answers"]) == 2
+    cached = replay(
+        function_agent(agent), make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache
+    )
+    assert [run.output for run in cached.runs] == [run.output for run in result.runs]
+
+
+def test_half_cached_pair_reruns_both_sides_after_environment_change(tmp_path):
+    environment = [0]
+    seen = []
+
+    def agent(case, prompts):
+        seen.append(prompts["system"])
+        return environment[0] - int(prompts["system"])
+
+    cache = Cache(tmp_path)
+    cases = make_cases(20)
+    old, new = {"system": "0"}, {"system": "1"}
+    run_prompts(function_agent(agent), cases, old, samples=1, cache=cache)
+    environment[0] = 10
+    result = evaluate(
+        function_agent(agent),
+        cases,
+        old,
+        new,
+        score_mode(lambda case, output: output),
+        samples=1,
+        timeout_s=1,
+        max_calls=40,
+        min_pairs=20,
+        cache=cache,
+    )
+    assert result.verdict.decision == "worse"
+    assert result.verdict.mean == -1
+    assert result.replay.calls == 40
+    assert seen == ["0"] * 20 + ["0", "1"] * 20
+    cached = replay(function_agent(agent), cases, old, new, samples=1, cache=cache, max_calls=0)
+    assert cached.calls == 0 and not cached.budget_exhausted
+    assert len(seen) == 60
+
+
+def test_changed_case_input_invalidates_cache_under_same_id(tmp_path):
+    agent = function_agent(lambda case, prompts: case["messages"])
+    cache = Cache(tmp_path)
+    run_prompts(agent, [Case("same", {"messages": ["old"]})], PROMPTS_A, cache=cache)
+    result = run_prompts(
+        agent,
+        [Case("same", {"messages": ["new"]})],
+        PROMPTS_A,
+        cache=cache,
+    )
+    assert result.calls == 2
+    assert all(run.output == ["new"] for run in result.runs)
+
+
+def test_half_cached_pair_stops_before_exceeding_budget(tmp_path):
+    agent = function_agent(RecordingAgent())
+    cache = Cache(tmp_path)
+    run_prompts(agent, make_cases(1), PROMPTS_A, samples=1, cache=cache)
+    result = replay(agent, make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, max_calls=1, cache=cache)
+    assert result.budget_exhausted
+    assert result.calls == 0 and result.runs == []
+
+
+def test_failed_refresh_cannot_resurrect_stale_cached_side(tmp_path):
+    failing = [False]
+
+    def agent(case, prompts):
+        if failing[0] and prompts == PROMPTS_A:
+            raise ValueError("A unavailable")
+        return 1
+
+    adapted = function_agent(agent)
+    cache = Cache(tmp_path)
+    run_prompts(adapted, make_cases(1), PROMPTS_A, samples=1, cache=cache)
+    failing[0] = True
+    for _ in range(2):
+        result = replay(adapted, make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+        assert result.calls == 2
+        assert "A unavailable" in result.runs[0].error
+
+
+def test_interrupted_pair_refresh_cannot_reuse_old_partner(tmp_path):
+    class InterruptedCache(Cache):
+        interrupted = False
+
+        def put(self, *args, **kwargs):
+            super().put(*args, **kwargs)
+            if self.interrupted:
+                raise OSError("interrupted after cache write")
+
+    cache = InterruptedCache(tmp_path)
+    agent = function_agent(RecordingAgent())
+    run_prompts(agent, make_cases(1), PROMPTS_B, samples=1, cache=cache)
+    cache.interrupted = True
+    with pytest.raises(OSError, match="interrupted"):
+        replay(agent, make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    cache.interrupted = False
+    result = replay(agent, make_cases(1), PROMPTS_A, PROMPTS_B, samples=1, cache=cache)
+    assert result.calls == 2
 
 
 def make_cases(n: int) -> list[Case]:

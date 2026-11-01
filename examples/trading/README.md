@@ -18,10 +18,11 @@ after installing promptcheckup, run:
 python market.py
 ```
 
-The 60 cases follow a fixed rule decided before looking at any prices or results:
-four evenly spaced days per ticker (32 days apart, from day 30), staggered by eight
-days between tickers. There is no seed to pick, so the sample cannot be tuned to
-flatter either policy. Day numbers start at zero. Seed 20261101 generates prices.
+The 60 cases follow a fixed rule committed in the repo, independent of prices and
+results: for ticker index `i`, choose `30 + (step * 32 + i * 8) % 128` for steps
+0 through 3, then sort the days. This gives four days per ticker, 32 days apart,
+with an eight-day stagger that wraps within the window. Day numbers start at zero.
+Seed 20261101 generates prices.
 Stressed spells are days 40–59 and 100–119. Ordinary daily moves are capped
 at ±5.5%; crashes are drawn separately. This is a small toy market, not a fitted
 market model.
@@ -35,9 +36,9 @@ market model.
   halve size after any daily drop of at least 3% in the window.
 
 Python computes the statistics; the model interprets the policy. It sees the last
-20 closes, ending on the decision day, and no later price. A test scrambles every
-price after each of the 2085 decision days and requires the model's prompt to stay
-byte-identical, and fails if a single future close is added to the window.
+20 closes, ending on the decision day, and no later price. A check scales every
+future price for each of the 2085 decision days and requires the model's prompt to
+stay byte-identical; another check detects a single future close added to the window.
 The 20-day return and sample standard deviation
 use 20 daily returns from 21 closes, ending on the case day. Volatility is not
 annualized. The prompt also supplies the last and worst daily returns in that window.
@@ -115,23 +116,27 @@ before recording that case again; damaged files never silently trigger a call.
 ## Results
 
 Recorded with Claude Haiku 5.5: 120 calls, one per policy and case. See the
-[full report](results/report-claude-haiku-5-5.md).
+[full report](results/report-claude-haiku-5-5.md), produced by the earlier version
+0.0.1. It checks the recorded policies, rather than validating release 1.1.0.
 
 | Check | Result |
 | --- | --- |
 | Gate on the 60 recorded cases | **Not sure yet.** Mean +12.76 bp per case, 95% CI -11.04 to +36.57. B won 26, lost 13, tied 21. |
-| Did the model follow each policy? | A: 60 of 60, B: 60 of 60 recorded positions match the policy written as code. |
+| Did the model follow each policy? | A: 60 of 60, B: 60 of 60 recorded positions are within 0.02 of each policy's rule (`check_policies.py` `TOLERANCE`). |
 | Both policies as code, on all 2085 ticker-days | **Not sure yet.** Mean +1.37 bp, 95% CI -2.61 to +5.36. |
 
 On the sample, B looked better: twice as many wins as losses, and +12.8 bp a case.
 But one case, where A was fully short into a 5.5% rally and B stayed flat, carries
-about 9 bp of that average on its own. Applied to every day of this market, B's
-edge is about +1 bp and can't be told apart from zero. A win count would have
-picked B. The gate did not: it said "not sure yet", which was right. Crashes in this market arrive at random, so "stay flat after a drop" has
-nothing to predict. A market whose crashes cluster could reward the rule.
+about 9 bp of that average on its own. Applied to every eligible day of this
+generated market, B's average edge is +1.37 bp and can't be told apart from zero.
+A win count would have picked B; the gate said "not sure yet". That doesn't show
+the rule has no edge, only that this data can't settle it. Crashes in this market
+arrive at random, so "stay flat after a drop" has little to predict. A market whose
+crashes cluster could reward the rule.
 
-The model followed both policies exactly, so the verdict reflects the policies, not
-model noise. Reproduce both checks without a key:
+All 60 recorded positions for each policy were within 0.02 of its rule written as
+code, so the verdict reflects the policies rather than the model wandering from them.
+Reproduce both checks without a key:
 
 ```bash
 python check_policies.py
@@ -149,8 +154,8 @@ repeatable; they do not remove uncertainty about other markets.
 
 The score gate's skew guard remains enabled. If differences lean toward rare large
 losses and a loss exceeds the average gain, it can turn an apparent improvement
-into `inconclusive`; the reverse applies to apparent regressions. It is not
-guaranteed to trigger on these cases. It cannot protect against an unseen crash.
+into `inconclusive`; the reverse applies to apparent regressions. It may not
+trigger on these cases and cannot protect against an unseen crash.
 
 Limits: one synthetic market, one model per recording set, 60 cases, and one model
 sample per policy/case. Overlapping lookbacks and shared regimes can make cases
