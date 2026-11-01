@@ -79,23 +79,43 @@ your app ──(@record, optional)──▶ cases/*.jsonl ◀── starter.py (
 
 The library never talks to GitHub. It writes markdown files. The workflow templates post them using the `gh` CLI.
 
-### Modules (one reason to change each)
+### Package layout (one reason to change per module)
 
-| Module | Responsibility |
-|---|---|
-| `config.py` | Load and validate `promptcheckup.toml` |
-| `cases.py` | Read and write case JSONL; validate it; track the source of each case (`recorded` / `synthetic` / `manual`) |
-| `record.py` | The `@record` decorator: apply `redact()`, then append `{input, output}` to JSONL |
-| `agents.py` | Run the agent: as a Python `module:function`, or as a command over stdin/stdout. Enforce the timeout |
-| `llm.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) that records token usage |
-| `replay.py` | Run a prompt set over the cases with k samples. Enforce the call cap. Read and write the output cache |
-| `judge.py` | `compare(case, out_a, out_b)` and `grade(case, out)`, both against the user's criteria; order-swapping; self-check |
-| `gate.py` | Pure function: paired per-case differences in, `Verdict` out |
-| `starter.py` | Generate synthetic starter cases from the prompt, the agent description and one example input |
-| `propose.py` | Generate one small edit from the prompts and the failing cases, with a rationale citing case IDs |
-| `checkup.py` | Orchestrate drift check, then failure patterns, then propose and gate |
-| `report.py` | Turn a `Verdict` or a check-up result into markdown |
-| `cli.py` | Argument parsing only: `init`, `gate`, `checkup`, `propose` |
+Modules are grouped into subpackages by concern. Each subpackage re-exports its public names in `__init__.py`. Users import the stable API from `promptcheckup` itself; the subpackage paths are internal.
+
+**Rules:**
+- A subpackage is created when its first module is written, never as an empty placeholder.
+- Dependencies point one way, down this table: `stats` imports nothing from the project; `cli` may import everything.
+- Tests mirror the layout: `tests/<subpackage>/test_<module>.py`. Each example has its own folder with a README and a test under `tests/examples/`.
+
+| Subpackage | Module | Responsibility |
+|---|---|---|
+| `stats/` | `gate.py` | Pure function: paired per-case differences in, `Verdict` out (**built**) |
+| `data/` | `cases.py` | Read and write case JSONL; validate it; track the source of each case (`recorded` / `synthetic` / `manual`) |
+| | `record.py` | The `@record` decorator: apply `redact()`, then append `{input, output}` to JSONL |
+| `runner/` | `agents.py` | Run the agent: as a Python `module:function`, or as a command over stdin/stdout. Enforce the timeout |
+| | `replay.py` | Run a prompt set over the cases with k samples, A and B back-to-back. Enforce the call cap. Read and write the output cache |
+| `llm/` | `client.py` | A minimal OpenAI-compatible chat client (base URL, model, API-key env var) that records token usage |
+| | `judge.py` | `compare(case, out_a, out_b)` and `grade(case, out)`, both against the user's criteria; order-swapping; self-check |
+| | `starter.py` | Generate synthetic starter cases from the prompt, the agent description and one example input |
+| | `propose.py` | Generate one small edit from the prompts and the failing cases, with a rationale citing case IDs |
+| `checkup/` | `checkup.py` | Orchestrate drift check, then failure patterns, then propose and gate |
+| | `report.py` | Turn a `Verdict` or a check-up result into markdown |
+| `cli/` | `config.py` | Load and validate `promptcheckup.toml` |
+| | `main.py` | Argument parsing only: `init`, `gate`, `checkup`, `propose` |
+| | `templates/` | Workflow YAML, example config and example cases written by `init` |
+
+```
+src/promptcheckup/
+  __init__.py          public API
+  stats/               built
+  data/  runner/  llm/  checkup/  cli/      planned, created with their first module
+tests/
+  stats/test_gate.py
+  examples/test_planted.py
+examples/
+  planted/             README.md, planted.py
+```
 
 **Dependencies:** Python 3.11+ (for `tomllib`) and `httpx`. The statistics use the standard library only. Dev dependencies are `pytest` and `ruff`.
 
