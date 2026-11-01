@@ -21,8 +21,8 @@ Detection windows include the incident week and its next two weeks (or the avail
 tail for short runs). A later drift flag is temporal association, not attribution:
 the library replaces its snapshot each week, so it does not accumulate evidence of
 a persistent drop. Quiet weeks in those windows still count as false alarms.
-The first week and weeks with new prompt hashes count in the quiet-week denominator
-when quiet, even though they cannot check drift. This models the actual workflow.
+The first week counts in the quiet-week denominator even without a baseline. New
+prompt hashes compare with the latest earlier prompt snapshot, as in the weekly workflow.
 """
 
 import argparse

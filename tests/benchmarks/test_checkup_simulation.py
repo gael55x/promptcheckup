@@ -80,15 +80,16 @@ def test_real_fix_kept_useless_fix_rejected_by_gate(simulation, tiny, tmp_path):
     assert all(row["proposal_outcome"] == "rejected" for row in useless)
     assert all(row["proposal_decision"] == "inconclusive" for row in useless)
     assert all(row["prompt_version"] == 2 for row in useless)  # merged the following week
-    assert all(row["drift_decision"] == "no_baseline" for row in useless)
+    assert all(row["drift_decision"] == "better" for row in useless)
 
 
-def test_unreviewed_merge_has_no_baseline_and_is_not_noticed(simulation, tiny, tmp_path):
-    rows = simulation.simulation_rows(tiny, tmp_path)
+def test_unreviewed_merge_is_detected_in_incident_week(simulation, tiny, tmp_path):
+    config = replace(tiny, repeats=10, regression_effect_sd=3)
+    rows = simulation.simulation_rows(config, tmp_path)
     incident = [row for row in rows if row["incident"] == "unreviewed_regression"]
     assert all(row["prompt_version"] == 0 for row in incident)
-    assert all(row["drift_decision"] == "no_baseline" for row in incident)
-    assert simulation.metrics(rows)["unreviewed_regressions_noticed"] == 0
+    assert sum(row["drift_decision"] == "worse" for row in incident) / len(incident) >= 0.8
+    assert simulation.metrics(rows)["unreviewed_regressions_noticed"] >= 0.8
 
 
 def test_agent_depends_on_prompt_and_week_with_reproducible_samples(simulation, tiny):

@@ -22,7 +22,12 @@ from promptcheckup.checkup.evolve import (
 )
 from promptcheckup.checkup.ledger import false_better_expected, record_trial, trials
 from promptcheckup.checkup.report import checkup_report, evolve_report, gate_report, proposal_report
-from promptcheckup.checkup.snapshot import Snapshot, load_snapshot, save_snapshot
+from promptcheckup.checkup.snapshot import (
+    Snapshot,
+    load_latest_snapshot,
+    load_snapshot,
+    save_snapshot,
+)
 
 __all__ = [
     "EvolveResult",
@@ -41,6 +46,7 @@ __all__ = [
     "checkup_report",
     "evaluate_replay",
     "load_snapshot",
+    "load_latest_snapshot",
     "proposal_report",
     "propose_only",
     "save_snapshot",

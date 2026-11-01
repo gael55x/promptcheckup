@@ -395,7 +395,7 @@ def checkup_timeline_chart(path: Path = RESULTS / "checkup_simulation.csv") -> s
             24,
             474,
             "Diamonds: incidents. Proposal labels: share of repeats. "
-            "New prompt hashes have no baseline.",
+            "New prompts use the previous snapshot.",
             cls="mute",
             size=11,
         ),

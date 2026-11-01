@@ -51,6 +51,23 @@ def load_snapshot(directory, prompts_hash) -> Snapshot | None:
     )
 
 
+def load_latest_snapshot(directory, *, excluding) -> tuple[str, Snapshot] | None:
+    """Return the newest valid evidence from another prompt, or a cache miss."""
+    candidates = []
+    for path in sorted(_path(directory, excluding).parent.glob("*.json")):
+        if path.stem == excluding:
+            continue
+        snapshot = load_snapshot(directory, path.stem)
+        if snapshot is not None:
+            candidates.append((path.stem, snapshot))
+    return max(candidates, key=lambda item: _created_at(item[1]), default=None)
+
+
+def _created_at(snapshot):
+    timestamp = datetime.fromisoformat(snapshot.created_at)
+    return timestamp if timestamp.tzinfo is not None else timestamp.replace(tzinfo=UTC)
+
+
 def _path(directory, prompts_hash):
     return Path(directory) / ".promptcheckup" / "snapshots" / f"{prompts_hash}.json"
 

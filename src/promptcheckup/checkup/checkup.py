@@ -22,7 +22,7 @@ from promptcheckup.checkup.evaluate import (
 )
 from promptcheckup.checkup.failures import current_failures
 from promptcheckup.checkup.ledger import record_trial
-from promptcheckup.checkup.snapshot import load_snapshot, save_snapshot
+from promptcheckup.checkup.snapshot import load_latest_snapshot, load_snapshot, save_snapshot
 from promptcheckup.data import Case, append_cases
 from promptcheckup.errors import errors_as, fallback
 from promptcheckup.llm.patterns import Pattern, failure_patterns
@@ -50,6 +50,8 @@ class CheckupResult:
     drift_checked: bool = True
     snapshot_saved: bool = False
     gated_proposal: Proposal | None = None  # audit evidence, never authorization to write files
+    drift_baseline: str = "same prompt"
+    previous_prompts_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -166,13 +168,23 @@ def _current(plan, state) -> _State:
 
 
 def _drift(plan, state) -> _State:
-    previous = load_snapshot(plan.directory, state.result.prompts_hash)
-    if previous is not None:
-        state = _compare_with(plan, state, previous)
+    state = _compare_snapshot(plan, state)
     if state.stopped:
         return state  # an incomplete comparison keeps the previous snapshot
     save_snapshot(plan.directory, state.result.prompts_hash, state.current.runs, plan.agent_version)
     return _spend(state, 0, snapshot_saved=True)
+
+
+def _compare_snapshot(plan, state) -> _State:
+    previous = load_snapshot(plan.directory, state.result.prompts_hash)
+    if previous is not None:
+        return _compare_with(plan, state, previous)
+    latest = load_latest_snapshot(plan.directory, excluding=state.result.prompts_hash)
+    if latest is None:
+        return state
+    previous_hash, previous = latest
+    state = _spend(state, 0, drift_baseline="previous prompt", previous_prompts_hash=previous_hash)
+    return _compare_with(plan, state, previous)
 
 
 def _compare_with(plan, state, previous) -> _State:
