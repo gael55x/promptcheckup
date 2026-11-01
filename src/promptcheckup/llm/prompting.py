@@ -1,8 +1,14 @@
 """Shared prompt plumbing: embed untrusted data safely and parse strict JSON replies."""
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
+
+from promptcheckup.errors import fallback
+
+# A closing ```json (or bare ```) fence that ends the reply.
+FINAL_FENCE = re.compile(r"```[ \t]*(?:json)?[ \t]*\n(.*)\n[ \t]*```\Z", re.DOTALL | re.IGNORECASE)
 
 REPLY_RULES = (
     (lambda result, schema: result.keys() == schema.keys(), "reply has unexpected keys"),
@@ -37,18 +43,24 @@ def data_block(value: Any) -> str:
 
 
 def json_reply(reply: str) -> dict:
-    """Parse a reply that is a JSON object, optionally inside a code fence.
+    """Parse the JSON object that ends a reply, optionally inside a final code fence.
 
+    Models may reason before answering, so prose may come first; nothing may follow.
     Anything else raises ValueError: a judgment is never guessed from prose.
     """
-    lines = reply.strip().splitlines()
-    if (
-        len(lines) >= 3
-        and lines[0].strip().lower() in ("```", "```json")
-        and lines[-1].strip() == "```"
-    ):
-        lines = lines[1:-1]
-    result = json.loads("\n".join(lines))
-    if not isinstance(result, dict):
-        raise ValueError("reply is not a JSON object")
-    return result
+    text = reply.strip()
+    fenced = FINAL_FENCE.search(text)
+    return _final_object(fenced.group(1).strip() if fenced else text)
+
+
+def _final_object(text: str) -> dict:
+    decoder = json.JSONDecoder()
+    candidates = (_decoded(decoder, text, i) for i, char in enumerate(text) if char == "{")
+    found = next((value for value, end in filter(None, candidates) if end == len(text)), None)
+    if found is None:
+        raise ValueError("reply does not end with a JSON object")
+    return found
+
+
+def _decoded(decoder: json.JSONDecoder, text: str, start: int) -> tuple[Any, int] | None:
+    return fallback(lambda: decoder.raw_decode(text, start), lambda error: None, ValueError)

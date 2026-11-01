@@ -85,10 +85,10 @@ def test_compare_parses_winners_and_optional_fences(winner, expected, fence):
         '{"winner": "1", "reason": 3}',
         '{"winner": "1", "reason": ["Wrong type."]}',
         '{"winner": "1", "reason": "Valid.", "extra": true}',
-        'Here is my judgment: {"winner": "1", "reason": "Valid."}',
         '{"winner": "1", "reason": "Valid."} trailing commentary',
         '```python\n{"winner": "1", "reason": "Wrong fence."}\n```',
-        '```json\n{"winner": "1", "reason": "Unclosed fence."}',
+        "Prose without any verdict.",
+        '{"winner": "1", "reason": "Valid."}\n```',
         '```json\n{"winner": "1", "reason": "Valid."}\n```\nMore text',
     ],
 )
@@ -100,6 +100,22 @@ def test_compare_rejects_invalid_replies(reply):
         compare(llm, {}, "a", "b", "Cite policy.")
 
     assert repr(reply[:200]) in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        'Here is my judgment: {"winner": "2", "reason": "Valid."}',
+        'Response 2 cites the policy that applies.\n\n{"winner": "2", "reason": "Valid."}',
+        'Reasoning first.\n```json\n{"winner": "2", "reason": "Valid."}\n```',
+        'It quoted {"winner": "1"} earlier. Verdict:\n{"winner": "2", "reason": "Valid."}',
+    ],
+)
+def test_compare_accepts_a_final_json_verdict_after_reasoning(reply):
+    def llm(prompt):
+        return reply
+
+    assert compare(llm, {}, "a", "b", "Cite policy.") == "second"
 
 
 def test_compare_error_contains_only_first_200_characters():
