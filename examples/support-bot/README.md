@@ -43,7 +43,9 @@ promptcheckup gate --old prompts/old-system.md --new prompts/system.md --out rep
 ```
 
 Open `report.md`. These are the real hosted-judge results already saved here; a new
-run may differ. The interval measures paired judge preference, not customer outcomes.
+run may differ. These reports were produced by the earlier version 0.0.1 to check
+the judges on these criteria, not to validate 1.1.0. The interval measures paired
+judge preference, not customer outcomes.
 
 | Judge / report | Verdict line | 95% CI | Self-check |
 | --- | --- | --- | --- |

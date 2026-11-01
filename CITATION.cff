@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use promptcheckup in your work, please cite it as below."
 type: software
 title: "promptcheckup: paired replay for deciding whether a prompt change made an AI agent better"
-version: 1.0.1
+version: 1.1.0
 license: Apache-2.0
 repository-code: "https://github.com/gael55x/promptcheckup"
 authors:
@@ -77,3 +77,43 @@ references:
     year: 2025
     url: "https://arxiv.org/abs/2510.15949"
     notes: "Prior art: feedback-driven prompt optimization for a trading agent."
+  - type: article
+    title: "GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning"
+    authors:
+      - family-names: Agrawal
+        given-names: Lakshya A
+      - family-names: Tan
+        given-names: Shangyin
+      - family-names: Soylu
+        given-names: Dilara
+      - family-names: Ziems
+        given-names: Noah
+      - family-names: Khare
+        given-names: Rishi
+      - family-names: Opsahl-Ong
+        given-names: Krista
+      - family-names: Singhvi
+        given-names: Arnav
+      - family-names: Shandilya
+        given-names: Herumb
+      - family-names: Ryan
+        given-names: Michael J
+      - family-names: Jiang
+        given-names: Meng
+      - family-names: Potts
+        given-names: Christopher
+      - family-names: Sen
+        given-names: Koushik
+      - family-names: Dimakis
+        given-names: Alexandros G.
+      - family-names: Stoica
+        given-names: Ion
+      - family-names: Klein
+        given-names: Dan
+      - family-names: Zaharia
+        given-names: Matei
+      - family-names: Khattab
+        given-names: Omar
+    year: 2025
+    url: "https://arxiv.org/abs/2507.19457"
+    notes: "Prior art: reflective prompt evolution."

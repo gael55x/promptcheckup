@@ -5,7 +5,7 @@ Install with Python 3.11 or later: `pip install promptcheckup`. It has no runtim
 For a first gate without a provider account, use the [plain example](../examples/connect/plain/).
 After installing, run `sh examples/connect/plain/first-gate.sh` from a clone of this repository. It runs doctor, compares
 an intentionally wrong greeting with the correct one over 20 manual cases, and writes
-`result.json`. Expect `B is better:`. Those toy cases prove the wiring; replace them
+`result.json`. Expect `B is better:`. Those toy cases check the wiring; replace them
 with representative tasks and a meaningful score before judging your own agent.
 
 [examples/connect/plain/first-gate.sh](../examples/connect/plain/first-gate.sh)
@@ -48,6 +48,11 @@ It writes one JSON value on stdout, such as this response. Send logs to stderr.
 
 Set `agent.cmd` instead of `agent.entry`. The command is split into arguments and run
 without a shell; it must read stdin itself. Both adapters use `agent.timeout_s`.
+Each replay run receives its own copies of the
+case input and prompts, and outputs are copied before storage. The cache includes
+the case input and reuses outputs only when both prompts are cached for that case
+and sample. Otherwise both run again back to back. Any failed run under either
+prompt downgrades "better" to "not sure yet", with the failure reason.
 
 ## 2. If your agent reads its prompt from a file today
 
@@ -218,11 +223,15 @@ if __name__ == "__main__":
 ```
 
 Run `python recording.py` from the plain example directory. `@record` appends input and
-output to `cases/recorded.jsonl`, labelled `recorded`. The redactor runs on copies before
-writing either value. This example removes only a top-level email field: adapt it to
+output to `cases/recorded.jsonl`, labelled `recorded`. It copies the input before the
+call and skips duplicate IDs. The redactor runs on copies before writing either
+value. This example removes only a top-level email field: adapt it to
 all sensitive fields in your own data, including free text. Set `run.redact` to your
-`module:function` as well when inputs or outputs need redaction before judge calls
-and reports. Doctor respects it for its preview and judge inputs.
+`module:function` as well for redaction before storage, model calls and reports.
+It covers case inputs, agent outputs and agent error text, including outputs and
+errors loaded from older snapshots. Doctor respects it for its preview, errors and
+judge inputs. Prompt text and judge criteria are sent unredacted, by design.
+The redactor must handle free text as well as structured values.
 
 ### Choosing cases
 
@@ -312,8 +321,44 @@ may reason before the JSON verdict; promptcheckup accepts a final JSON object, i
 one inside a final JSON fence. Invalid verdicts are errors, never guessed from prose.
 See [Anthropic's compatibility documentation](https://platform.claude.com/docs/en/cli-sdks-libraries/libraries/openai-sdk).
 
-**Which judge model?** Pick one that is at least as capable as the agent's own model on your task. In our own check (a 30-case billing-support gate, with a harder variant that cited a wrong policy for some questions), Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 all reached the right verdict, passed the self-check, and caught every wrong citation. Sonnet and Opus were the most decisive. Haiku hedged on a few cases, which widens the confidence interval, so plan on more cases with a smaller judge. One test is not a benchmark: the self-check runs on every gate and tells you when a judge is unreliable for your criteria.
-A weekly check-up needs an `[llm]` table even when the gate uses a score function.
+Which judge model? The saved [support-bot reports](../examples/support-bot/results/)
+show Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 accepting the planted citation edit on
+30 cases, with 100.0% self-check consistency. These reports came from 0.0.1 and check
+the judges on those criteria; they do not validate 1.1.0 or establish correctness
+of every answer. Evaluate a judge on representative cases and known errors.
+
+An A/B comparison costs `2 × cases × samples` judge calls; the self-check costs
+`2 × cases`, adding about 50.0% at 2 samples. It is cached by judge model, endpoint,
+criteria, cases, A outputs and `min_pairs`; a cached result costs no calls. The gate
+report separately shows "Judge order agreement on A vs B", the share of comparisons
+whose verdicts agree after swapping answer order.
+
+### Weekly check-ups and proposals
+
+`gate` in score mode makes no model calls of its own. `checkup`, `propose` and `evolve`
+call the configured model for failure patterns and proposals even in score mode,
+so they need an `[llm]` table. An agent may also make its own provider calls.
+
+Set `holdout = 0.5` under `[run]` (the default) for `checkup` and `propose`. They learn
+patterns and proposals from learning cases and gate edits on held-out cases. Use at
+least 40 cases for an even 20/20 split with the default `run.min_pairs = 20`. The
+20 starter cases let the first check-up report patterns and an untested proposal.
+If too few cases are held out, the report includes the proposal and rationale but
+does not test or write the edit; doctor warns that more cases are needed.
+
+All three commands hold out exactly `round(share × n)` cases (half up), choosing
+the lowest SHA-256 hashes of case IDs. Any ID works, and inputs and outcomes are
+never used to choose the split. Evolve uses its own
+`--holdout` option (default 0.3) and sets one confidence from the planned rounds;
+the same confidence applies throughout the run.
+
+Check-up compares with the latest snapshot, whatever its prompt, and labels it
+"same prompt" or "previous prompt". "Stable" requires a clean drift comparison.
+The first run says "First check-up: baseline saved." Partial failures say
+"Partly checked: …"; `Check-up failed: all N runs errored.` exits 3.
+
+The trial ledger counts distinct variants on an identical case-ID set. An
+inconclusive report suggests adding cases rather than rerunning the same test.
 
 ## Gate prompt changes in your test suite
 
@@ -344,9 +389,11 @@ def test_prompt_change():
     assert result.verdict.wins == 20
 ```
 
-For histories stored as rows, `assert_no_lookahead` changes numeric columns only
-in rows after each decision time, leaving the time column and booleans unchanged.
-Your input-building function must return the same view. It leaves the history intact.
+For histories stored as rows, `assert_no_lookahead` checks an affine change to
+future numbers, an independent random perturbation of each future number, and
+removal of future rows. It leaves time columns and booleans unchanged. The input
+builder must return the same view under each check; the original history stays
+intact. These checks do not establish the absence of every possible leak.
 
 [examples/connect/testing/test_no_lookahead.py](../examples/connect/testing/test_no_lookahead.py)
 
@@ -404,12 +451,17 @@ show only the environment variable's name and whether it is set, never its value
 | Warning | What to do |
 |---|---|
 | No cases yet | Run `promptcheckup checkup` to generate 20 labelled starter cases, or capture real calls with `@record`. Doctor uses `agent.example_input` and writes no cases. |
-| Fewer than `run.min_pairs` | Add cases: every gate verdict remains “not sure yet” below that minimum. The line also shows the synthetic share; replace starter data with representative real inputs. |
+| Fewer than `run.min_pairs` | Add cases: every gate verdict remains "not sure yet" below that minimum. The line also shows the synthetic share; replace starter data with representative real inputs. |
+| Too few held-out cases | Add cases before testing check-up proposals; `run.holdout` defaults to 0.5. |
+| Fewer than `run.min_pairs` | Add cases: every gate verdict remains "not sure yet" below that minimum. The line also shows the synthetic share; replace starter data with representative real inputs. |
 | Output did not change | Check that your agent uses the `prompts` argument instead of reading files. The probe replaces every prompt's text in memory for one call. Identical output is a strong clue, not proof: a stochastic agent may change its answer for unrelated reasons. If the agent fails on the probe text, doctor warns instead: that shows it reads the supplied prompts, and real runs never send the probe. |
-| Gate or check-up exceeds `max_calls` | Raise the budget or reduce cases/samples deliberately. The estimate uses a cold cache, and check-up includes starter generation when needed. Its verdict would stop at “not sure yet” when the cap is reached. |
+| Gate or check-up exceeds `max_calls` | Raise the budget or reduce cases/samples deliberately. The estimate uses a cold cache, and check-up includes starter generation when needed. Its verdict would stop at "not sure yet" when the cap is reached. |
 
 Doctor always attempts its fixed diagnostic calls even when `run.max_calls` is smaller;
-that setting caps gate/check-up runs. A missing case file is allowed at this stage;
+that setting caps logical agent and model calls in gate/check-up runs. A model
+call may retry up to `max_retries` times (default 2); an agent call may make several
+provider calls. The cap does not bound money or provider requests.
+A missing case file is allowed at this stage;
 an existing empty or malformed case file is a failure that needs fixing.
 The Python adapter enforces a waiting deadline but cannot kill a running thread;
 use a command adapter when you need process termination at timeout.
