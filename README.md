@@ -82,6 +82,8 @@ To see paired replay beat a naive comparison, run the [planted example](examples
 
 ## Gate a prompt change on your agent
 
+See [Connect your agent](docs/connect-your-agent.md) for runnable adapters, then run `promptcheckup doctor` to check the wiring.
+
 `init` writes a config, three example cases and a pull-request workflow. It never overwrites existing files:
 
 ```bash
@@ -152,7 +154,7 @@ python benchmarks/charts.py                              # renders the SVG chart
 | LLM judge with order-swapping, prompt-injection protection and a self-check | **Done** |
 | `promptcheckup init` and `gate` CLI, pull-request workflow template | **Done** |
 | Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | **Done** |
-| `promptcheckup doctor` and a guide for connecting your agent | Next |
+| `promptcheckup doctor` and a guide for connecting your agent | **Done** |
 | Trading-agent and support-bot examples; validation on real agents | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).
