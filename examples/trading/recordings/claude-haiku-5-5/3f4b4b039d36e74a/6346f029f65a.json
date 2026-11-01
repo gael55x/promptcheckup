@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.0101, \"reason\": \"The 5-day return is +0.000505, which is positive, so the trend policy goes long. Sizing is min(1, |0.000505| / 0.05) = 0.0101. This matches the closes: 72.599365 / 72.562728 - 1 \u2248 0.000505.\"}"}

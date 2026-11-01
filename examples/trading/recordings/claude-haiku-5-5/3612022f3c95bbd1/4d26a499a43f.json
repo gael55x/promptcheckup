@@ -1,1 +1,0 @@
-{"reply": "```json\n{\"position\": 0, \"reason\": \"The 20-day volatility is 2.59%, above the 2% threshold, so the policy requires staying flat. The 5-day return of -2.57% would otherwise imply a short of about -0.51 (0.0257/0.05). The last day's return of +1.47% does not trigger the 4% drop rule, and the volatility stop overrides the trend signal.\"}\n```"}

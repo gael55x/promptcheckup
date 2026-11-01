@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.201, \"reason\": \"The 5-day return is +1.005%, so the trend rule calls for a long position. Sizing is min(1, |0.01005| / 0.05) = 0.201. The last day's -3.1% move does not change the signal, which uses only the 5-day return.\"}"}

@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": -0.448474, \"reason\": \"The 5-day return is -2.24%, which is negative, so the trend-following policy calls for a short position. Position size is the absolute 5-day return divided by 0.05 (0.02242 / 0.05 = 0.4485), which is below the cap of 1. The result is a short position of about 0.45 of maximum size.\"}\n```"}

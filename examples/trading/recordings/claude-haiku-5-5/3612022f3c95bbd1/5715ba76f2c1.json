@@ -1,1 +1,0 @@
-{"reply": "{\"position\": 0, \"reason\": \"The 5-day return is -7.30%, which signals a short with full base size (min(1, 0.073/0.05) = 1). However, the last day fell 7.23%, more than the 4% threshold, so the policy requires staying flat. The 20-day volatility of 1.83% is below the 2% limit, so that rule does not apply. The flat rule overrides the trend signal.\"}"}

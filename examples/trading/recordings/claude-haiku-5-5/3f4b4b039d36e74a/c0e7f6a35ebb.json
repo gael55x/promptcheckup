@@ -1,1 +1,0 @@
-{"reply": "```json\n{\"position\": -0.01957, \"reason\": \"The 5-day return is -0.000979, which is negative, so the trend rule calls for a short. The position size is min(1, |-0.000979| / 0.05) = 0.01957, giving a small short of about 2% of the maximum. The 5-day return checks out against the closes: 93.358824 / 93.450288 - 1 = -0.000979.\"}\n```"}

@@ -1,1 +1,0 @@
-{"reply": "```json\n{\"position\": 0.087, \"reason\": \"The 5-day return is +0.435% (63.848 vs. 63.572 five sessions earlier), so the trend rule calls for a long position. Sizing is min(1, |0.00435| / 0.05) = 0.087, a small long because the recent trend is weak.\"}\n```"}

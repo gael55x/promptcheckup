@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0, \"reason\": \"The 5-day return is -9.59%, which signals a short with a base size of -1 (capped at 1). However, 20-day volatility is 2.65%, above the 2% threshold, so the policy requires staying flat. The last day's return was +0.27%, so the 4% drop rule does not apply. The volatility rule alone sets the position to zero.\"}"}

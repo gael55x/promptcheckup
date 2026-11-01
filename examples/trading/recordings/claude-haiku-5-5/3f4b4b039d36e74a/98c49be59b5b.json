@@ -1,1 +1,0 @@
-{"reply": "```json\n{\"position\": 0.3872, \"reason\": \"The 5-day return is +1.94%, which is positive, so the trend policy calls for a long position. The position size is the smaller of 1 and |0.01936| / 0.05 = 0.3872. The 20-day return is negative, but the policy uses only the 5-day signal, so it does not change the decision.\"}\n```"}

@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.1585, \"reason\": \"The 5-day return is -0.7925% (-0.007925), which is negative, so the trend rule calls for a short. Sizing is the smaller of 1 and |return_5d| / 0.05 = 0.007925 / 0.05 \u2248 0.1585, giving a short position of about -0.1585.\"}"}

@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0, \"reason\": \"The 5-day return is -1.96%, which would imply a short of about -0.39 (0.0196/0.05). However, the 20-day daily volatility is 2.26%, above the 2% threshold, so the policy requires staying flat. The last day's drop of -0.53% does not trigger the separate 4% rule, but the volatility rule alone sets the position to zero.\"}"}

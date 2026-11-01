@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": -0.062314, \"reason\": \"The 5-day return is -0.003116, which is negative, so the trend-following rule calls for a short. The size is min(1, |-0.003116| / 0.05) = 0.062314, a small short because the trend is weak. The last 5 closes confirm the figure: 90.971437 / 91.255762 - 1 = -0.003116.\"}\n```"}

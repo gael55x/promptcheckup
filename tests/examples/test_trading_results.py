@@ -53,9 +53,9 @@ def test_gate_on_the_recordings_matches_the_saved_report(committed):
     saved = (EXAMPLE / "results/report-claude-haiku-5-5.md").read_text(encoding="utf-8")
 
     assert verdict.decision == "inconclusive"
-    assert (verdict.wins, verdict.losses, verdict.ties) == (21, 11, 28)
+    assert (verdict.wins, verdict.losses, verdict.ties) == (26, 13, 21)
     row = f"| 60 | {verdict.mean:+.2f} | {verdict.ci_low:+.2f} to {verdict.ci_high:+.2f} |"
-    assert row in saved and row == "| 60 | +15.35 | -10.64 to +41.34 |"
+    assert row in saved and row == "| 60 | +12.76 | -11.04 to +36.57 |"
 
 
 def test_rules_on_every_ticker_day_show_no_reliable_edge(committed):
@@ -67,6 +67,44 @@ def test_rules_on_every_ticker_day_show_no_reliable_edge(committed):
 
 def test_readme_quotes_only_numbers_these_checks_produce():
     readme = (EXAMPLE / "README.md").read_text(encoding="utf-8")
-    for quoted in ("+15.35", "-10.64 to +41.34", "21, lost 11, tied 28", "60 of 60", "2085"):
+    for quoted in ("+12.76", "-11.04 to +36.57", "26, lost 13, tied 21", "60 of 60", "2085"):
         assert quoted in readme
     assert "+1.37" in readme and "-2.61 to +5.36" in readme
+
+
+def test_the_model_never_sees_a_price_after_the_decision_day(committed, monkeypatch):
+    """Scramble every price after each decision day: the model's prompt must not change."""
+    trader, pnl, market = committed["trader"], committed["pnl"], committed["market"]
+    prompts = {"prompts/policy.md": "Follow the trend."}
+    days = [{"ticker": t, "day": d} for t in market.TICKERS for d in range(20, 159)]
+    honest = {(c["ticker"], c["day"]): trader.build_prompt(c, prompts) for c in days}
+    original = dict(pnl.PRICES)
+    for case in days:
+        future = {
+            key: price * 1.37 if key[0] == case["ticker"] and key[1] > case["day"] else price
+            for key, price in original.items()
+        }
+        monkeypatch.setattr(pnl, "PRICES", future)
+        assert trader.build_prompt(case, prompts) == honest[case["ticker"], case["day"]]
+
+
+def test_the_window_ends_on_the_decision_day_and_the_score_uses_only_the_next_day(committed):
+    trader, pnl = committed["trader"], committed["pnl"]
+    case = {"ticker": "SYN03", "day": 87}
+    window = trader.market_window(case)
+    expected = [pnl.PRICES["SYN03", day] for day in range(68, 88)]
+    assert window["closes"] == expected  # the last 20 closes, ending on day 87
+    today, tomorrow = pnl.PRICES["SYN03", 87], pnl.PRICES["SYN03", 88]
+    assert pnl.score(case, {"position": 1.0}) == 10000 * (tomorrow / today - 1 - 0.001)
+
+
+def test_cases_follow_a_fixed_rule_chosen_without_looking_at_prices(committed):
+    """Four evenly spaced days per ticker, staggered by ticker: no seed to pick, no outcome."""
+    market = committed["market"]
+    expected = [
+        {"ticker": ticker, "day": day}
+        for index, ticker in enumerate(market.TICKERS)
+        for day in sorted(30 + (step * 32 + index * 8) % 128 for step in range(4))
+    ]
+    assert [row["input"] for row in market.generate_cases()] == expected
+    assert all(case["day"] + 1 < market.DAYS for case in expected)  # every case has a next day

@@ -1,1 +1,0 @@
-{"reply": "{\"position\": 0.2002, \"reason\": \"The 5-day return is +1.00%, which is positive, so the trend-following policy goes long. Sizing is min(1, |0.010010| / 0.05) = 0.2002. The return checks out against the closes: 68.852423 / 68.170042 - 1 \u2248 0.01001. Volatility and the 20-day return were not needed for this rule.\"}"}

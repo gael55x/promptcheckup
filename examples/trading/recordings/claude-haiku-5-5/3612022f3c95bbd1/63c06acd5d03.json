@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.0544, \"reason\": \"The 5-day return is +0.54%, so the trend is long. Base size is min(1, 0.00544/0.05) = 0.1089. Volatility (1.70%) is below the 2% cutoff and the last day's return (-0.39%) is not below -4%, so no flat rule applies. The 20-day window contains daily drops of at least 3% (worst -4.06%), so the position is halved to about 0.0544.\"}"}

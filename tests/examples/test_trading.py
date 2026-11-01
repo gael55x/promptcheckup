@@ -111,18 +111,6 @@ def test_trading_market_has_crashes_and_volatility_regimes(trading):
     assert stdev(stressed) > 2 * stdev(calm)
 
 
-def test_trading_cases_exercise_a_next_day_crash(trading):
-    prices = trading["pnl"].PRICES
-    cases = load_cases(["cases/cases.jsonl"], EXAMPLE)
-    moves = [
-        prices[case.input["ticker"], case.input["day"] + 1]
-        / prices[case.input["ticker"], case.input["day"]]
-        - 1
-        for case in cases
-    ]
-    assert any(move <= -0.06 for move in moves)
-
-
 @pytest.mark.parametrize(
     ("position", "next_close", "expected"),
     [

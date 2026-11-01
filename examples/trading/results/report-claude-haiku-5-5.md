@@ -2,15 +2,15 @@ Not sure yet: the confidence interval includes zero. Add more cases or let it ru
 
 | n | Mean | 95% CI | Wins | Losses | Ties |
 | --- | --- | --- | --- | --- | --- |
-| 60 | +15.35 | -10.64 to +41.34 | 21 | 11 | 28 |
+| 60 | +12.76 | -11.04 to +36.57 | 26 | 13 | 21 |
 
 Largest changes (first successful paired sample shown):
 
 | Case | Difference | A | B |
 | --- | --- | --- | --- |
 | b9675d4e266c | +560.00 | {"position": -1.0, "reason": "The 5-day return is -9.89%, which is negative, so the trend signal is short. Position size is min(1, \|-0.0989\| / 0.05) = min(1, 1.98) = 1, so the position is full short at -1."} | {"position": 0.0, "reason": "The 5-day return is -9.9%, which would signal a short of size 1 (capped at 1 since 0.099/0.05 &gt; 1). However, 20-day daily volatility is 4.1%, above the 2% threshold, so the policy requires staying flat."} |
-| 59da084c0736 | +277.16 | {"position": 0.5009, "reason": "The 5-day return is +2.50%, which is positive, so the trend-following rule calls for a long position. Position size is min(1, \|0.025046\| / 0.05) = 0.5009, so the position is about half of full long exposure. The return checks out against the displayed closes: 112.464 … | {"position": 0.2505, "reason": "The 5-day return is +2.50%, so the trend is long. Size is min(1, 0.02505/0.05) ≈ 0.501. The 20-day volatility of 1.85% is below the 2% limit, and the last-day return of +0.20% is not a drop of more than 4%, so the position is not forced flat. The worst daily return in… |
-| b3b0f39fc2a3 | -238.43 | {"position": 1.0, "reason": "The 5-day return is +0.1216, which is positive, so the trend-following rule calls for a long position. Its size is min(1, 0.1216 / 0.05) = min(1, 2.43) = 1, so the position is capped at full long. The stated 5-day return matches the closes (131.89 vs. 117.59 five days ea… | {"position": 0.0, "reason": "The 5-day return is +12.2%, which would give a long signal and a full-size position of 1. However, the 20-day daily volatility is 2.74%, above the 2% threshold, so the policy requires staying flat."} |
+| 2841cf9d151f | +275.88 | {"position": -0.6023, "reason": "The 5-day return is -3.01%, which is negative, so the trend-following policy calls for a short position. Its size is the smaller of 1 and \|return_5d\| / 0.05 = 0.0301 / 0.05 = 0.6023, so the position is -0.6023. The 5-day return checks out against the closes: 79.396 /… | {"position": 0.0, "reason": "The 5-day return of -3.01% gives a short signal, with a raw size of min(1, 0.0301/0.05), about 0.60. However, the 20-day volatility of 2.67% exceeds the 2% limit, so the policy requires staying flat. The last day's +3.05% move does not trigger the 4% drop rule, but the v… |
+| ff151ec1d50c | -219.58 | {"position": -0.8491, "reason": "The 5-day return is -4.25%, which is negative, so the trend-following rule calls for a short. The size is min(1, \|−0.04246\| / 0.05) = 0.8491, so the position is -0.8491. The 5-day return matches the last 5 closes (73.86 vs. 77.13 five days earlier)."} | {"position": 0.0, "reason": "The trend signal is short, since the 5-day return is -4.25%, which would give a raw size of about -0.85. The risk overrides stay flat: 20-day volatility is 4.16%, above the 2% limit, and the last day fell 5.5%, beyond the 4% limit. Position is therefore zero."} |
 
 Calls: 120 agent, 0 judge. Tokens: unavailable (judge); unavailable (agent protocol). Judge model: not reported.
 

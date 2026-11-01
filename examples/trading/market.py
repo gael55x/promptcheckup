@@ -10,7 +10,9 @@ from promptcheckup.data.cases import case_id
 
 ROOT = Path(__file__).resolve().parent
 SEED = 20261101
-CASE_SEED = 0
+# Cases follow a fixed rule decided before looking at any prices or results: four
+# evenly spaced days per ticker, staggered by eight days between tickers.
+FIRST_CASE_DAY, CASE_SPAN, CASES_PER_TICKER, STAGGER = 30, 128, 4, 8
 TICKERS = tuple(f"SYN{number:02}" for number in range(1, 16))
 DAYS = 160
 STRESSED_SPELLS = ((40, 60), (100, 120))  # inclusive start, exclusive end
@@ -72,12 +74,19 @@ def write_market(path: Path) -> None:
         writer.writerows((row.ticker, row.day, f"{row.close:.6f}") for row in generate_market())
 
 
-def generate_cases(seed: int = CASE_SEED) -> list[dict]:
-    rng = random.Random(seed)
+def case_days(index: int) -> list[int]:
+    spacing = CASE_SPAN // CASES_PER_TICKER
+    return sorted(
+        FIRST_CASE_DAY + (step * spacing + index * STAGGER) % CASE_SPAN
+        for step in range(CASES_PER_TICKER)
+    )
+
+
+def generate_cases() -> list[dict]:
     inputs = [
         {"ticker": ticker, "day": day}
-        for ticker in TICKERS
-        for day in sorted(rng.sample(range(30, 159), 4))
+        for index, ticker in enumerate(TICKERS)
+        for day in case_days(index)
     ]
     return [{"id": case_id(case), "input": case, "source": "synthetic"} for case in inputs]
 

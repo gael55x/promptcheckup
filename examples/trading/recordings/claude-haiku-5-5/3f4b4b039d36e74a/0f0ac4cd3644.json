@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.0855, \"reason\": \"The 5-day return is +0.4274%, which is positive, so the trend rule calls for a long position. The size is min(1, |0.004274| / 0.05) = 0.0855. This matches the 5-day return from the last 20 closes (62.1886 vs 61.9239 five sessions earlier).\"}"}

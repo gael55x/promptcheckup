@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.6666, \"reason\": \"The 5-day return is +0.0333, which is positive, so the trend-following rule calls for a long position. Its size is min(1, 0.0333/0.05) \u2248 0.6666, which is below the cap of 1. The last 5 closes confirm the stated 5-day return.\"}"}

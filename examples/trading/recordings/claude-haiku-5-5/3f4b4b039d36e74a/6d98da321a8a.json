@@ -1,1 +1,0 @@
-{"reply": "{\"position\": 0.2003, \"reason\": \"The 5-day return is +1.00%, which is positive, so the trend rule goes long. Position size is min(1, 0.010016 / 0.05) = 0.2003, which is well below the cap of 1. The 5-day return matches the closes (105.0718 vs. 104.0298 five sessions earlier).\"}"}

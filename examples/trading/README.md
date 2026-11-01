@@ -18,10 +18,11 @@ after installing promptcheckup, run:
 python market.py
 ```
 
-The cases sample four distinct days per ticker. Day numbers start at zero. Seed
-20261101 generates prices; case seed 0 was chosen to include a next-day crash for
-tail coverage, without using either policy's scores. This sample does not estimate
-crash frequency. Stressed spells are days 40–59 and 100–119. Ordinary daily moves are capped
+The 60 cases follow a fixed rule decided before looking at any prices or results:
+four evenly spaced days per ticker (32 days apart, from day 30), staggered by eight
+days between tickers. There is no seed to pick, so the sample cannot be tuned to
+flatter either policy. Day numbers start at zero. Seed 20261101 generates prices.
+Stressed spells are days 40–59 and 100–119. Ordinary daily moves are capped
 at ±5.5%; crashes are drawn separately. This is a small toy market, not a fitted
 market model.
 
@@ -34,7 +35,10 @@ market model.
   halve size after any daily drop of at least 3% in the window.
 
 Python computes the statistics; the model interprets the policy. It sees the last
-20 closes and no future prices. The 20-day return and sample standard deviation
+20 closes, ending on the decision day, and no later price. A test scrambles every
+price after each of the 2085 decision days and requires the model's prompt to stay
+byte-identical, and fails if a single future close is added to the window.
+The 20-day return and sample standard deviation
 use 20 daily returns from 21 closes, ending on the case day. Volatility is not
 annualized. The prompt also supplies the last and worst daily returns in that window.
 
@@ -42,6 +46,11 @@ The score, in basis points, is
 `10000 * (position * next_day_return - 0.001 * abs(position))`.
 Ten basis points is the full one-day round-trip cost, charged even when the price
 does not move. Each case starts fresh; positions do not carry between cases.
+
+**Timing.** The decision uses the close of day *t* and earns the move from that
+close to the close of day *t*+1. This synthetic market has no overnight gaps, so
+filling at the decision-day close equals filling at the next open. With real prices,
+fill at the next open instead, or the backtest assumes a fill it could not get.
 
 ## Run the gate
 
@@ -110,15 +119,15 @@ Recorded with Claude Haiku 5.5: 120 calls, one per policy and case. See the
 
 | Check | Result |
 | --- | --- |
-| Gate on the 60 recorded cases | **Not sure yet.** Mean +15.35 bp per case, 95% CI -10.64 to +41.34. B won 21, lost 11, tied 28. |
+| Gate on the 60 recorded cases | **Not sure yet.** Mean +12.76 bp per case, 95% CI -11.04 to +36.57. B won 26, lost 13, tied 21. |
 | Did the model follow each policy? | A: 60 of 60, B: 60 of 60 recorded positions match the policy written as code. |
 | Both policies as code, on all 2085 ticker-days | **Not sure yet.** Mean +1.37 bp, 95% CI -2.61 to +5.36. |
 
-On the sample, B looked better: almost twice as many wins as losses, and +15 bp
-a case. Applied to every day of this market, its edge is about +1 bp and can't be
-told apart from zero. The sample was lucky; its seed was chosen to include a crash.
-A win count would have picked B. The gate did not: it said "not sure yet", which
-was right. Crashes in this market arrive at random, so "stay flat after a drop" has
+On the sample, B looked better: twice as many wins as losses, and +12.8 bp a case.
+But one case, where A was fully short into a 5.5% rally and B stayed flat, carries
+about 9 bp of that average on its own. Applied to every day of this market, B's
+edge is about +1 bp and can't be told apart from zero. A win count would have
+picked B. The gate did not: it said "not sure yet", which was right. Crashes in this market arrive at random, so "stay flat after a drop" has
 nothing to predict. A market whose crashes cluster could reward the rule.
 
 The model followed both policies exactly, so the verdict reflects the policies, not

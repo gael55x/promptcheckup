@@ -1,1 +1,0 @@
-{"reply": "{\"position\": -1, \"reason\": \"The 5-day return is -0.0787, which is negative, so the trend signal is short. The position size is min(1, |-0.0787| / 0.05) = min(1, 1.57) = 1, so the position is fully short at -1. The stock also fell sharply, with the last close at 93.77 versus 101.79 five days earlier, which supports the trend signal.\"}"}

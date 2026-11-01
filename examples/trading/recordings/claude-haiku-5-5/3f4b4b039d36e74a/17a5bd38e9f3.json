@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.6271, \"reason\": \"The 5-day return is +3.14%, which is positive, so the trend-following policy goes long. Position size is min(1, |0.03135| / 0.05) = 0.6271. The 5-day return checks out against the closes (54.941035 / 53.270844 - 1 = 0.03135).\"}"}
