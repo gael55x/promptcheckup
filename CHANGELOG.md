@@ -2,6 +2,21 @@
 
 All notable changes are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-11-01
+
+### Fixed
+
+- **Workflow templates install the published package.** The templates written by `init` now install `promptcheckup>=1,<2` from PyPI instead of the repository's default branch, so CI runs a signed release rather than unreleased code.
+- **README corrections:**
+  - the false "better" rate is 2.2–2.7% on symmetric noise, and 2.0% falling to almost 0% on crash-skewed P&L;
+  - ten variants tried on the same cases carry about a 22% chance of a false "better" (not 40%);
+  - `evolve` keeps that chance below 2.5%.
+- **Integration guide:** installs from PyPI.
+
+### Changed
+
+- **The README is rewritten in a plainer voice.** It adds a table of how many cases are needed to detect small, medium and large improvements, and a section on what the results mean in practice. Tests check every quoted number against the committed results.
+
 ## [1.0.0] - 2026-11-01
 
 The first public release.
@@ -30,4 +45,5 @@ The first public release.
 - **Benchmarks:** false-positive and power simulations of the gate, and a simulated year of weekly check-ups with planted incidents.
 - **Documentation:** a guide for connecting an agent, and the full design in `DESIGN.md`.
 
+[1.0.1]: https://github.com/gael55x/promptcheckup/releases/tag/v1.0.1
 [1.0.0]: https://github.com/gael55x/promptcheckup/releases/tag/v1.0.0
