@@ -425,8 +425,8 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 |---|---|---|---|
 | M0 | Repo, Apache-2.0, ruff, pytest, CI | Done | — |
 | M1 | `gate.py` + planted example (tests 1–2) | Done | — |
-| M2 | cases, record, agents, replay, cache (tests 3–5) | Next | — |
-| M3 | llm, judge + self-check (test 6) | Planned | LLM API key and budget for real runs |
+| M2 | cases, record, agents, replay, cache (tests 3–5) | Done | — |
+| M3 | llm, judge + self-check (test 6) | Next | LLM API key and budget for real runs |
 | M4 | starter, propose, checkup, report, CLI, init + templates (tests 7–9) | Planned | — |
 | M5 | Support-bot quickstart, trading example | Planned | LLM API key and budget |
 | M6 | Validation (section 14), dogfood on LayeredMemoryTrader | Planned | 2+ weeks of real check-ups |
