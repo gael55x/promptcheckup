@@ -10,12 +10,13 @@ import csv
 import math
 import random
 from pathlib import Path
+from types import MappingProxyType
 
 from promptcheckup.stats import decide
 
 RESULTS = Path(__file__).parent / "results"
-CASE_COUNTS = [20, 30, 50, 80]  # 20 is the gate's default minimum
-NOISES = ["normal", "heavy_tailed", "judge", "crash_skew"]
+CASE_COUNTS = (20, 30, 50, 80)  # 20 is the gate's default minimum
+NOISES = ("normal", "heavy_tailed", "judge", "crash_skew")
 SHIPPED, PLAIN_T, BOOTSTRAP = (
     "shipped: paired t + skew guard",
     "paired t without skew guard",
@@ -23,17 +24,29 @@ SHIPPED, PLAIN_T, BOOTSTRAP = (
 )
 
 
+NULL_SAMPLERS = MappingProxyType(
+    {
+        "normal": lambda rng: rng.gauss(0, 1),
+        # Student t with 3 degrees of freedom.
+        "heavy_tailed": lambda rng: rng.gauss(0, 1) / math.sqrt(rng.gammavariate(1.5, 2) / 3),
+        # Mean of two order-swapped judgments, each -1 / 0 / +1.
+        "judge": lambda rng: sum(rng.choice((-1, 0, 0, 1)) for _ in range(2)) / 2,
+        # Small gains most days, rare large losses (skewness -6.2).
+        "crash_skew": lambda rng: -(math.exp(rng.gauss(0, 1)) - math.exp(0.5)),
+        # Skewness -0.78, the hardest case for the guard.
+        "mild_skew": lambda rng: -(math.exp(rng.gauss(0, 0.25)) - math.exp(0.03125)),
+        # +0.5 two days in three, -1 otherwise.
+        "two_point_skew": lambda rng: 0.5 if rng.random() < 2 / 3 else -1.0,
+    }
+)
+
+
 def null_samples(kind: str, n: int, rng: random.Random) -> list[float]:
     """Paired differences when the prompt change does nothing (true mean exactly 0)."""
-    if kind == "normal":
-        return [rng.gauss(0, 1) for _ in range(n)]
-    if kind == "heavy_tailed":  # Student t with 3 degrees of freedom
-        return [rng.gauss(0, 1) / math.sqrt(rng.gammavariate(1.5, 2) / 3) for _ in range(n)]
-    if kind == "judge":  # mean of 2 order-swapped judgments, each -1 / 0 / +1
-        return [sum(rng.choice((-1, 0, 0, 1)) for _ in range(2)) / 2 for _ in range(n)]
-    if kind == "crash_skew":  # P&L-style: small gains most days, rare large losses
-        return [-(math.exp(rng.gauss(0, 1)) - math.exp(0.5)) for _ in range(n)]
-    raise ValueError(kind)
+    sampler = NULL_SAMPLERS.get(kind)
+    if sampler is None:
+        raise ValueError(kind)
+    return [sampler(rng) for _ in range(n)]
 
 
 def bootstrap_says_better(diffs: list[float], rng: random.Random, resamples: int) -> bool:
@@ -76,7 +89,7 @@ def power_rows() -> list[dict]:
     """How often the shipped gate detects a real improvement of a given size (in noise SDs)."""
     rows = []
     for effect in (0.2, 0.5, 0.8):
-        for n in CASE_COUNTS + [120]:
+        for n in CASE_COUNTS + (120,):
             rng = random.Random(f"power-{effect}-{n}")
             sims = 2_000
             hits = sum(

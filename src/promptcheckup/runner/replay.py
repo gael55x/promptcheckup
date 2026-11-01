@@ -4,11 +4,12 @@ import hashlib
 import json
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
 from promptcheckup.data import Case
+from promptcheckup.errors import fallback
 from promptcheckup.runner.agents import Agent, AgentError, call_agent
 
 PromptSet = Literal["A", "B"]
@@ -46,11 +47,17 @@ class Cache:
 
     def get(self, prompts_hash: str, case_id: str, sample: int) -> tuple[bool, Any]:
         path = self._path(prompts_hash, case_id, sample)
-        try:
-            entry = json.loads(path.read_text(encoding="utf-8"))
-            created_at, output = float(entry["created_at"]), entry["output"]
-        except (OSError, ValueError, KeyError, TypeError):
+        entry = fallback(
+            lambda: _cache_entry(path),
+            lambda error: None,
+            OSError,
+            ValueError,
+            KeyError,
+            TypeError,
+        )
+        if entry is None:
             return False, None  # missing or damaged entries are simply re-run
+        created_at, output = entry
         if self.clock() - created_at > self.ttl_seconds:
             return False, None
         return True, output
@@ -94,34 +101,56 @@ def replay(
     Stops before any pair that would exceed `max_calls`, so the result never holds half
     a pair. Agent failures become runs with an error; they are never cached.
     """
-    hashes = {"A": prompt_hash(prompts_a), "B": prompt_hash(prompts_b)}
     prompts = {"A": prompts_a, "B": prompts_b}
-    runs: list[Run] = []
-    calls = 0
+    hashes = {side: prompt_hash(value) for side, value in prompts.items()}
+    pairs = _planned_pairs(cases, samples, cache, hashes)
+    return _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes)
 
+
+def _cache_entry(path: Path) -> tuple[float, Any]:
+    entry = json.loads(path.read_text(encoding="utf-8"))
+    return float(entry["created_at"]), entry["output"]
+
+
+def _planned_pairs(cases, samples, cache, hashes):
     for case in cases:
         for sample in range(samples):
-            hits = {
-                side: cache.get(hashes[side], case.id, sample) if cache else (False, None)
-                for side in ("A", "B")
-            }
-            needed = sum(not found for found, _ in hits.values())
-            if calls + needed > max_calls:
-                return Replay(runs, calls, budget_exhausted=True)
+            yield (
+                case,
+                [_cached_run(cache, hashes[side], case.id, side, sample) for side in ("A", "B")],
+            )
 
-            for side in ("A", "B"):
-                found, output = hits[side]
-                if found:
-                    runs.append(Run(case.id, side, sample, output=output, cached=True))
-                    continue
-                calls += 1
-                try:
-                    output = call_agent(agent, case.input, prompts[side], timeout_s=timeout_s)
-                except AgentError as e:
-                    runs.append(Run(case.id, side, sample, error=str(e)))
-                    continue
-                if cache:
-                    cache.put(hashes[side], case.id, sample, output)
-                runs.append(Run(case.id, side, sample, output=output))
 
+def _cached_run(cache, prompts_hash, case_id, side, sample) -> Run:
+    found, output = cache.get(prompts_hash, case_id, sample) if cache else (False, None)
+    return Run(case_id, side, sample, output=output, cached=found)
+
+
+def _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes) -> Replay:
+    runs = []
+    calls = 0
+    for case, pair in pairs:
+        needed = sum(not run.cached for run in pair)
+        if calls + needed > max_calls:
+            return Replay(runs, calls, budget_exhausted=True)
+        runs.extend(
+            _complete_run(
+                agent, case, run, prompts[run.prompt_set], timeout_s, cache, hashes[run.prompt_set]
+            )
+            for run in pair
+        )
+        calls += needed
     return Replay(runs, calls, budget_exhausted=False)
+
+
+def _complete_run(agent, case, run, prompts, timeout_s, cache, prompts_hash) -> Run:
+    if run.cached:
+        return run
+    result = fallback(
+        lambda: replace(run, output=call_agent(agent, case.input, prompts, timeout_s=timeout_s)),
+        lambda error: replace(run, error=str(error)),
+        AgentError,
+    )
+    if cache and result.error is None:
+        cache.put(prompts_hash, case.id, run.sample, result.output)
+    return result

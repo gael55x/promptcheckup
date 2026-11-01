@@ -9,8 +9,23 @@ import csv
 from collections import defaultdict
 from html import escape
 from pathlib import Path
+from types import MappingProxyType
 
 RESULTS = Path(__file__).parent / "results"
+
+NOISE_TITLES = MappingProxyType(
+    {
+        "normal": "Normal noise",
+        "heavy_tailed": "Heavy-tailed noise",
+        "judge": "LLM-judge (−1/0/+1)",
+        "crash_skew": "P&L crash skew",
+    }
+)
+SHIPPED, PLAIN, BOOT = (
+    "shipped: paired t + skew guard",
+    "paired t without skew guard",
+    "percentile bootstrap (rejected)",
+)
 
 # Reference palette, validated for colour-vision deficiency in light and dark mode.
 STYLE = """<style>
@@ -63,7 +78,18 @@ def line_panel(x0, y0, w, h, series, x_ticks, y_max, y_step, title, ref=None, y_
     def sy(v):
         return y0 + h - v / y_max * h
 
-    out = [text(x0, y0 - 12, title, cls="ink", size=13, weight=500)]
+    out = [
+        text(x0, y0 - 12, title, cls="ink", size=13, weight=500),
+        *_grid(x0, w, sy, y_max, y_step, y_label),
+        *_axes(x0, y0, w, h, sx, x_ticks),
+        *_reference_line(x0, w, sy, ref),
+        *_series(series, sx, sy),
+    ]
+    return out, sx, sy
+
+
+def _grid(x0, w, sy, y_max, y_step, y_label):
+    out = []
     tick = 0.0
     while tick <= y_max + 1e-9:
         out.append(
@@ -73,11 +99,21 @@ def line_panel(x0, y0, w, h, series, x_ticks, y_max, y_step, title, ref=None, y_
         if y_label:
             out.append(text(x0 - 8, sy(tick) + 4, f"{tick:g}%", cls="mute", size=11, anchor="end"))
         tick += y_step
+    return out
+
+
+def _axes(x0, y0, w, h, sx, x_ticks):
+    out = []
     out.append(
         f'<line class="axis" x1="{x0}" x2="{x0 + w}" y1="{y0 + h}" y2="{y0 + h}" stroke-width="1"/>'
     )
     for t in x_ticks:
         out.append(text(sx(t), y0 + h + 16, str(t), cls="mute", size=11, anchor="middle"))
+    return out
+
+
+def _reference_line(x0, w, sy, ref):
+    out = []
     if ref is not None:
         value, label = ref
         out.append(
@@ -86,6 +122,11 @@ def line_panel(x0, y0, w, h, series, x_ticks, y_max, y_step, title, ref=None, y_
         )
         if label:
             out.append(text(x0 + w, sy(value) - 5, label, cls="mute", size=11, anchor="end"))
+    return out
+
+
+def _series(series, sx, sy):
+    out = []
     for cls, points in series:
         path = " ".join(
             f"{'M' if i == 0 else 'L'}{sx(x):.1f},{sy(y):.1f}" for i, (x, y) in enumerate(points)
@@ -100,7 +141,7 @@ def line_panel(x0, y0, w, h, series, x_ticks, y_max, y_step, title, ref=None, y_
                 f'<circle class="ring" cx="{sx(x):.1f}" cy="{sy(y):.1f}" r="5" '
                 f'fill="none" stroke-width="2"/>'
             )
-    return out, sx, sy
+    return out
 
 
 def legend(x, y, items) -> list[str]:
@@ -127,17 +168,6 @@ def false_positive_chart() -> str:
     for r in rows:
         by[(r["noise"], r["method"])].append((int(r["cases"]), 100 * float(r["false_better_rate"])))
     ticks = sorted({int(r["cases"]) for r in rows})
-    titles = {
-        "normal": "Normal noise",
-        "heavy_tailed": "Heavy-tailed noise",
-        "judge": "LLM-judge (−1/0/+1)",
-        "crash_skew": "P&L crash skew",
-    }
-    shipped, plain, boot = (
-        "shipped: paired t + skew guard",
-        "paired t without skew guard",
-        "percentile bootstrap (rejected)",
-    )
     body = [
         text(
             24,
@@ -163,11 +193,11 @@ def false_positive_chart() -> str:
             100,
             160,
             170,
-            [("s2", by[(noise, boot)]), ("s3", by[(noise, plain)]), ("s1", by[(noise, shipped)])],
+            [("s2", by[(noise, BOOT)]), ("s3", by[(noise, PLAIN)]), ("s1", by[(noise, SHIPPED)])],
             ticks,
             y_max=16,
             y_step=4,
-            title=titles[noise],
+            title=NOISE_TITLES[noise],
             ref=(2.5, None),
             y_label=i == 0,
         )
