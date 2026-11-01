@@ -186,7 +186,7 @@ samples = 2
 max_calls = 400
 cache_ttl_hours = 24
 agent_version = ""                 # optional, e.g. "gpt-5-mini@2026-10"; shown in drift reports
-min_pairs = 10
+min_pairs = 20
 redact = ""                        # optional "module:function"
 ```
 
@@ -238,16 +238,28 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
 
 ### 7.3 Gate decision
 
-1. If `n_cases < min_pairs`, the verdict is **inconclusive** ("need more cases").
+1. If `n_cases < min_pairs` (default **20**), the verdict is **inconclusive** ("need more cases").
 2. Otherwise, compute a 95% **paired t** confidence interval of `mean(d)`.
-   - The t quantile uses a Cornish-Fisher expansion, which matches statistical tables to within 0.001, so no SciPy is needed.
-   - The first plan was a percentile bootstrap. Measurement rejected it: with 10–20 cases and no real difference, it said "better" 3–5.75% of the time, against a 2.5% target. The t-interval stayed at 1.65–2.85% for normal, heavy-tailed and judge-style noise.
-   - It is also deterministic, so the gate needs no seed.
+   - Values are rescaled into [−1, 1] first, so very small or very large scores neither underflow nor overflow.
+   - The t quantile is computed exactly: the integer-df Student t CDF (Abramowitz & Stegun 26.7.3), inverted by bisection. No SciPy is needed. Supported confidence levels are 0.5–0.999.
+   - It is deterministic, so the gate needs no seed.
 3. Decide from the interval:
    - lower bound > 0: **better**
    - upper bound < 0: **worse**
    - otherwise: **inconclusive**
-4. The report also lists:
+4. **Skew guard (score mode only).**
+   - If the differences have sample skewness below −0.5, a "better" verdict is downgraded to **inconclusive**: "a few large losses could decide the outcome; add more cases". A "worse" verdict is downgraded the same way when skewness is above +0.5.
+   - Judge mode turns the guard off. Its scores are bounded in [−1, 1], so a rare huge loss is impossible, and a genuine improvement (mostly wins) is itself negatively skewed.
+5. **Why this design** (measured; the full numbers are in `benchmarks/`):
+   - A percentile bootstrap was tried first. With 10–20 cases and no real difference, it said "better" up to 5% of the time, against a 2.5% target.
+   - The plain t-interval meets the target on symmetric noise. On crash-skewed P&L (small gains most days, rare large losses) it said "better" **9–13%** of the time. A bootstrap-t (studentized bootstrap) only reduced that to 6–9%.
+   - The skew guard brings crash-skewed false "better" to **1.4% at 20 cases and about 0% at 50+**, and keeps every symmetric noise type at 2.2–2.7%.
+   - The cost: on symmetric data at 20 cases, the guard also blocks some real improvements. Detection of a large (0.8 SD) improvement falls from about 93% to 81%. Accepted, because a false "better" is the worst bug (section 3).
+   - Known remaining worst cases:
+     - mildly skewed data at 20 cases: about 3.2%;
+     - an always-decisive judge (every case ±1) at certain case counts: up to 3.3% at 50 cases.
+     - Both are covered by tests with documented limits.
+6. The report also lists:
    - win, loss and tie counts;
    - the 3 cases with the largest `|d_c|`, with A and B outputs side by side;
    - prompt hashes, model IDs, call count and token usage.
@@ -346,7 +358,7 @@ Each step's tests are written and fail before its code is written. Tests use rea
 
 | # | Module | Key tests |
 |---|---|---|
-| 1 | `gate.py` | Positive shift gives **better**; zero-mean noise gives **inconclusive**; negative shift gives **worse**; fewer than `min_pairs` cases gives **inconclusive**; the t quantile matches table values. **False-positive test:** 4,000 simulations per noise type (normal, heavy-tailed, judge-style) with no real difference, at the default `min_pairs`. The gate may say "better" at most 3% of the time: the 2.5% target plus Monte Carlo slack. Done. |
+| 1 | `gate.py` | Positive shift gives **better**; zero-mean noise gives **inconclusive**; negative shift gives **worse**; fewer than `min_pairs` cases gives **inconclusive**. Exact interval endpoints match hand computation. The t quantile matches table values from 90% to 99.95%. The verdict is the same at 1e-200 and 1e300 scale. The skew guard blocks better/worse in the skewed direction. Unsupported confidence levels are rejected. **False-positive tests:** 4,000 simulations per noise type at 20 and 30 cases. The limit is ≤3% for normal, heavy-tailed and judge noise, and ≤3.5% for three skewed P&L shapes. Exact enumeration for an always-decisive ±1 judge, at most 3.5% up to 50 cases. Done. |
 | 2 | planted example | With shared per-case noise and one genuine rule, the naive comparison picks the wrong prompt **and** the paired gate picks the right one. This is the project's reason to exist. |
 | 3 | `cases.py`, `record.py` | Round-trips the JSONL; `redact` runs before writing; output that isn't JSON-serializable gives a clear error |
 | 4 | `agents.py` | A Python entrypoint works; a real two-line Node or Python command works through stdin/stdout; timeouts are enforced |
@@ -422,7 +434,7 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 |---|---|
 | Product type | Library + CLI + workflow templates |
 | First trace integration | None in v1.0 (`@record` + starter cases) |
-| Statistics | Paired 95% t confidence interval; conservative three-way verdict |
+| Statistics | Paired 95% t confidence interval (exact quantile) with a skew guard in score mode; minimum 20 cases; conservative three-way verdict |
 | Judge | Pairwise, order-swapped, with a self-check |
 | LLM access | One OpenAI-compatible endpoint; user brings their own key |
 | License | Apache-2.0 |
