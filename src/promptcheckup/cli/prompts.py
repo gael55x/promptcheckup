@@ -29,7 +29,7 @@ SOURCE_RULES = (
 def load_prompts(config, *, old_ref=None, old=None, new=None) -> tuple[dict, dict]:
     """Map either source onto the configured, project-relative prompt names."""
     _validate_sources(len(config.prompts.files), old_ref, old, new)
-    names = [Path(os.path.relpath(path, config.root)).as_posix() for path in config.prompts.files]
+    names = _prompt_names(config)
     if old_ref:
         previous = [_git_prompt(config.root, old_ref, path) for path in config.prompts.files]
         current = [_read_prompt(path) for path in config.prompts.files]
@@ -80,3 +80,12 @@ def _git(root, args) -> str:
             encoding="utf-8",
             timeout=10,
         ).stdout
+
+
+def load_current_prompts(config) -> dict[str, str]:
+    """Read the configured working-tree prompt set using the gate's canonical names."""
+    return dict(zip(_prompt_names(config), map(_read_prompt, config.prompts.files), strict=True))
+
+
+def _prompt_names(config):
+    return [Path(os.path.relpath(path, config.root)).as_posix() for path in config.prompts.files]

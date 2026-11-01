@@ -10,11 +10,12 @@ TEMPLATES = {
     "promptcheckup.toml": "promptcheckup.toml",
     "cases/example.jsonl": "example.jsonl",
     ".github/workflows/promptcheckup-gate.yml": "promptcheckup-gate.yml",
+    ".github/workflows/promptcheckup-checkup.yml": "promptcheckup-checkup.yml",
 }
 
 
 def initialize(directory: Path) -> int:
-    """Create the three starter files from package resources, reporting every skip."""
+    """Create the starter files from package resources, reporting every skip."""
     with errors_as(ConfigError, {OSError: lambda error: f"could not initialize project: {error}"}):
         for destination, template in TEMPLATES.items():
             content = (
