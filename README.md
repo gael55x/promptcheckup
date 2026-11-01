@@ -142,6 +142,10 @@ Seeded simulations of the shipped gate. All numbers can be reproduced with the c
 
 ![Detection rate by improvement size and case count](benchmarks/results/power.svg)
 
+**Simulated year of weekly check-ups.** Across 200 seeded years, with 50 fixed cases and 2 samples, the real `checkup()` flagged a persistent 0.5 noise-SD provider drop in **87.5%** of incident weeks (**89.0%** through week +2). A harmless change flagged **2.0% / 7.0%** over those windows. Quiet weeks flagged **2.3%**, or **1.075 false alarms/year**. Real +1 SD fixes were kept **92.5%** of the time; useless fixes were rejected **95.0%**. The useless-edit week happens once per year, so its 5.0% kept rate is noisy (binomial 95% CI about 2.4–9.0%); gating the same edit 2,000 more times gave **2.05%** false "better", matching the gate's design. Unreviewed prompt regressions were noticed **0%** in their week: a new prompt hash has no snapshot baseline. The **3.5%** with a later flag were quiet-week false alarms, not evidence of delayed detection; snapshots roll forward weekly. This is a simulation with planted effects of known size and plain-function model stubs, not real users or validation of a real LLM. Reproduce in about 30 seconds with `PYTHONPATH=src python benchmarks/run_checkup_simulation.py --repeats 200`, then `python benchmarks/charts.py`; the [CSV](benchmarks/results/checkup_simulation.csv) records all 10,400 runs.
+
+![Weekly drift flags, five planted incidents, and observed proposal outcomes over 200 simulated years](benchmarks/results/checkup_timeline.svg)
+
 ```bash
 PYTHONPATH=src python benchmarks/run_gate_benchmark.py   # about 40 seconds, writes CSVs
 python benchmarks/charts.py                              # renders the SVG charts
@@ -158,6 +162,9 @@ python benchmarks/charts.py                              # renders the SVG chart
 | Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | **Done** |
 | `promptcheckup doctor` and a guide for connecting your agent | **Done** |
 | Trading-agent and support-bot examples | **Done** |
+| Simulated year of weekly check-ups with planted incidents | **Done** |
+| `promptcheckup evolve`: autonomous proposals gated on held-out cases, plus a trial ledger | Next |
+| pytest helper and a look-ahead recipe for time-series agents | Planned |
 | Validation on real agents over several weeks of check-ups | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).
