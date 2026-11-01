@@ -316,6 +316,63 @@ See [Anthropic's compatibility documentation](https://platform.claude.com/docs/e
 **Which judge model?** Pick one that is at least as capable as the agent's own model on your task. In our own check (a 30-case billing-support gate, with a harder variant that cited a wrong policy for some questions), Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 all reached the right verdict, passed the self-check, and caught every wrong citation. Sonnet and Opus were the most decisive. Haiku hedged on a few cases, which widens the confidence interval, so plan on more cases with a smaller judge. One test is not a benchmark: the self-check runs on every gate and tells you when a judge is unreliable for your criteria.
 A weekly check-up needs an `[llm]` table even when the gate uses a score function.
 
+## Gate prompt changes in your test suite
+
+`promptcheckup.testing` accepts your plain agent function and `Case` objects or input
+dicts. Supply exactly one of `score` or `judge` (with `criteria`). `assert_better`
+requires a better verdict; `assert_not_worse` also accepts inconclusive results.
+Both return the evaluation and raise plain `AssertionError` on failure, with the
+report headline and statistics. No pytest dependency or config file is needed.
+This deterministic toy checks the wiring; use representative cases for your agent.
+
+[examples/connect/testing/test_prompt_change.py](../examples/connect/testing/test_prompt_change.py)
+
+```python
+from promptcheckup.testing import assert_better
+
+
+def run(case, prompts):
+    return f"{prompts['system']} {case['name']}!"
+
+
+def score(case, output):
+    return float(output == f"Hello, {case['name']}!")
+
+
+def test_prompt_change():
+    cases = [{"name": f"Person {index}"} for index in range(20)]
+    result = assert_better(run, cases, {"system": "Goodbye,"}, {"system": "Hello,"}, score=score)
+    assert result.verdict.wins == 20
+```
+
+For histories stored as rows, `assert_no_lookahead` changes numeric columns only
+in rows after each decision time, leaving the time column and booleans unchanged.
+Your input-building function must return the same view. It leaves the history intact.
+
+[examples/connect/testing/test_no_lookahead.py](../examples/connect/testing/test_no_lookahead.py)
+
+```python
+from promptcheckup.testing import assert_no_lookahead
+
+
+def build_input(history, decision_time):
+    return [row for row in history if row["date"] <= decision_time]
+
+
+def test_no_lookahead():
+    history = [
+        {"date": "2026-10-01", "price": 10.0},
+        {"date": "2026-10-02", "price": 12.0},
+        {"date": "2026-10-03", "price": 11.0},
+    ]
+    assert_no_lookahead(build_input, history, [row["date"] for row in history], time_key="date")
+```
+
+For other data shapes, use the hand-written perturbation pattern in the
+[trading look-ahead test](../tests/examples/test_trading_results.py): change future
+values and require the model's input to stay identical. Run these examples with
+`pytest examples/connect/testing` in a checkout with promptcheckup installed.
+
 ## 6. Check the wiring
 
 Run `promptcheckup doctor` from your project, or pass `--config path/to/promptcheckup.toml`.

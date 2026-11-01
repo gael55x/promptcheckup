@@ -52,6 +52,8 @@ def test_guide_fenced_examples_match_real_files():
     guide = (ROOT / "docs/connect-your-agent.md").read_text()
     fences = list(FENCES.finditer(guide))
     assert fences
+    for name in ("test_prompt_change.py", "test_no_lookahead.py"):
+        assert f"[examples/connect/testing/{name}]" in guide
     for fence in fences:
         # Each fence is immediately preceded by a link naming its complete source file.
         prefix = guide[: fence.start()].rstrip().splitlines()[-1]
@@ -123,3 +125,9 @@ def test_node_protocol_files(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout == (path / "output.json").read_text()
+
+
+@pytest.mark.parametrize("name", ["test_prompt_change", "test_no_lookahead"])
+def test_testing_guide_examples_run(name):
+    module = load_example(EXAMPLES / "testing" / f"{name}.py")
+    getattr(module, name)()
