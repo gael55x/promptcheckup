@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 236" width="720" height="236" role="img" aria-label="Wrong-prompt rate: naive comparison vs paired replay">
+<title>Wrong-prompt rate: naive comparison vs paired replay</title>
+<style>
+  svg { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .bg { fill: #fcfcfb; } .ink { fill: #0b0b0b; } .ink2 { fill: #52514e; } .mute { fill: #898781; }
+  .grid { stroke: #e1e0d9; } .axis { stroke: #c3c2b7; } .ref { stroke: #898781; }
+  .s1 { stroke: #2a78d6; fill: #2a78d6; } .s2 { stroke: #eb6834; fill: #eb6834; }
+  .s3 { stroke: #1baf7a; fill: #1baf7a; }
+  .o1 { stroke: #86b6ef; fill: #86b6ef; } .o2 { stroke: #2a78d6; fill: #2a78d6; }
+  .o3 { stroke: #104281; fill: #104281; } .ring { stroke: #fcfcfb; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .ink { fill: #f0efec; } .ink2 { fill: #c3c2b7; }
+    .grid { stroke: #2c2c2a; } .axis { stroke: #383835; }
+    .s1 { stroke: #3987e5; fill: #3987e5; } .s2 { stroke: #d95926; fill: #d95926; }
+    .s3 { stroke: #199e70; fill: #199e70; }
+    .o1 { stroke: #184f95; fill: #184f95; } .o2 { stroke: #3987e5; fill: #3987e5; }
+    .o3 { stroke: #9ec5f4; fill: #9ec5f4; } .ring { stroke: #1a1a19; }
+  }
+</style>
+<rect class="bg" width="720" height="236" rx="8"/>
+<text class="ink" x="24.0" y="30.0" font-size="15" text-anchor="start" font-weight="500">How often each method picked the worse prompt</text>
+<text class="mute" x="24.0" y="50.0" font-size="11" text-anchor="start" font-weight="400">Trading-like scenario: shared daily market noise, prompt B truly better (+0.3 per day), 20 days</text>
+<line class="grid" x1="200.0" x2="200.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="200.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">0%</text>
+<line class="grid" x1="288.0" x2="288.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="288.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">10%</text>
+<line class="grid" x1="376.0" x2="376.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="376.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">20%</text>
+<line class="grid" x1="464.0" x2="464.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="464.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">30%</text>
+<line class="grid" x1="552.0" x2="552.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="552.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">40%</text>
+<line class="grid" x1="640.0" x2="640.0" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="640.0" y="190.0" font-size="11" text-anchor="middle" font-weight="400">50%</text>
+<text class="ink2" x="188.0" y="104.0" font-size="12" text-anchor="end" font-weight="400">Naive (different weeks)</text>
+<rect class="s2" x="200" y="84" width="363.4" height="30" rx="4"/>
+<text class="ink" x="571.4" y="104.0" font-size="12" text-anchor="start" font-weight="500">41.3%</text>
+<text class="ink2" x="188.0" y="152.0" font-size="12" text-anchor="end" font-weight="400">Paired replay</text>
+<text class="ink" x="208.0" y="152.0" font-size="12" text-anchor="start" font-weight="500">0.0%</text>
+<line class="axis" x1="200" x2="200" y1="72" y2="172" stroke-width="1"/>
+<text class="mute" x="24.0" y="218.0" font-size="11" text-anchor="start" font-weight="400">Naive always guesses. Paired replay picked B in 88.0% of runs and said “not sure yet” in 12.0%. 2,000 runs.</text>
+</svg>
