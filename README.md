@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml/badge.svg)](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/promptcheckup.svg)](https://pypi.org/project/promptcheckup/)
-[![Python](https://img.shields.io/pypi/pyversions/promptcheckup.svg)](https://pypi.org/project/promptcheckup/)
+[![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://github.com/gael55x/promptcheckup/blob/main/pyproject.toml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/gael55x/promptcheckup/blob/main/LICENSE)
 
 promptcheckup replays the same cases through your old and new prompt,<br>
@@ -45,13 +45,13 @@ pip install promptcheckup
 ## Quick start
 
 ```bash
-promptcheckup init      # writes promptcheckup.toml, example cases and two GitHub workflows
+promptcheckup init      # config, example cases and two GitHub workflows
 ```
 
 Edit `promptcheckup.toml` to point at your agent (a Python function `run(case, prompts)`, or any command that reads JSON on stdin), your prompt files and your cases. The [Connect your agent](https://github.com/gael55x/promptcheckup/blob/main/docs/connect-your-agent.md) guide has copy-paste adapters for plain Python, the OpenAI and Anthropic SDKs, and Node.js. Then check the wiring and gate your first change:
 
 ```bash
-promptcheckup doctor    # config, prompts, cases, agent, scoring, judge and budget, one line each
+promptcheckup doctor    # checks the wiring, one line per check
 promptcheckup gate --old-ref origin/main --out report.md
 ```
 
@@ -79,17 +79,19 @@ print(verdict.decision, verdict.reason)
 
 ## Evidence
 
-Every number below comes from a file in this repository or a command anyone can rerun.
+Every number below comes from a committed file or a command anyone can rerun.
 
-| Without promptcheckup | With promptcheckup | Source |
+| Risk | Without promptcheckup | With promptcheckup |
 |---|---|---|
-| Comparing prompts run on different weeks picked the **worse** prompt **41.3%** of the time. | Paired replay picked it **0%** of the time. | [gate benchmark](#benchmarks) |
-| When nothing really changed, a plain statistical test on crash-skewed P&L said "better" **9–13%** of the time. | The gate said "better" **2.0–2.7%** of the time on every noise type, against a 2.5% target. | [gate benchmark](#benchmarks) |
-| In the trading example, policy B won **26** cases to **13**, so a win count crowns it. | The gate said **not sure yet** (+12.76 bp, 95% CI −11.04 to +36.57). Across all 2,085 ticker-days the true edge is +1.37 bp, which is indistinguishable from zero. | [trading example](https://github.com/gael55x/promptcheckup/tree/main/examples/trading) |
-| A silent provider regression goes unnoticed until users complain. | The weekly check-up flagged it in **87.5%** of incident weeks, with about **1 false alarm per year**. | [simulated year](#benchmarks) |
-| A prompt merged without review starts a fresh baseline and hides a regression. | The weekly check-up compares it with the previous prompt and flagged it in **98.5%** of incident weeks. | [simulated year](#benchmarks) |
-| An "improved" prompt that memorises its test cases ships. | `evolve` gates every edit on held-out cases and rejects it. | [evolve test](https://github.com/gael55x/promptcheckup/blob/main/tests/checkup/test_evolve.py) |
-| An LLM judge is trusted without checking. | Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each judged the same 30 cases, and each passed the self-check at **100%** order consistency before its verdict was trusted. | [support-bot reports](https://github.com/gael55x/promptcheckup/tree/main/examples/support-bot/results) |
+| Comparing prompts run on different weeks | picks the **worse** prompt **41.3%** of the time | **0%** with paired replay |
+| No real change, crash-skewed P&L | a plain test says "better" **9–13%** of the time | **2.0–2.7%**, against a 2.5% target |
+| A lucky trading sample | a win count crowns the new policy, 26 to 13 | **not sure yet** (+12.76 bp, 95% CI −11.04 to +36.57); the true edge is about zero |
+| Silent provider regression | unnoticed until users complain | caught in **87.5%** of incident weeks, about 1 false alarm a year |
+| Prompt merged without review | a fresh baseline hides the regression | caught in **98.5%** of incident weeks |
+| A prompt that memorises its test cases | ships | `evolve` rejects it on held-out cases |
+| An untested judge | trusted blindly | self-checked on every run; three hosted judges passed at **100%** consistency |
+
+Sources: [gate benchmark](#benchmarks), [simulated year](#benchmarks), [trading example](https://github.com/gael55x/promptcheckup/tree/main/examples/trading), [evolve test](https://github.com/gael55x/promptcheckup/blob/main/tests/checkup/test_evolve.py), [judge reports](https://github.com/gael55x/promptcheckup/tree/main/examples/support-bot/results).
 
 A full gate on 30 cases with Claude Haiku 5.5 as the judge took **180 judge calls** (58,330 input and 40,108 output tokens).
 
