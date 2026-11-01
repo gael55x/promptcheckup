@@ -1,0 +1,3 @@
+{"id":"double-charge","input":{"question":"Why was I charged twice?"},"source":"synthetic"}
+{"id":"cancel-plan","input":{"question":"How do I cancel my plan?"},"source":"synthetic"}
+{"id":"refund-policy","input":{"question":"Am I eligible for a refund?"},"source":"synthetic"}

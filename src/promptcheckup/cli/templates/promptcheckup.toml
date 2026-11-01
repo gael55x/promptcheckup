@@ -1,0 +1,33 @@
+[agent]
+entry = "app.agent:run"            # or: cmd = "node agent.js"
+description = "Answers customer billing questions for a SaaS product"
+example_input = { question = "Why was I charged twice?" }
+timeout_s = 60
+
+[prompts]
+files = ["prompts/system.md", "prompts/tools.md"]
+
+[cases]
+paths = ["cases/*.jsonl"]
+
+[scoring]
+mode = "judge"                     # or "score"
+score = "app.eval:score"           # used when mode = "score"
+criteria = """
+Correct, cites the relevant policy, never promises refunds the policy doesn't allow.
+"""
+
+[llm]
+base_url = "https://api.openai.com/v1"
+model = "gpt-5-mini"
+api_key_env = "OPENAI_API_KEY"
+
+[run]
+samples = 2
+max_calls = 400
+cache_ttl_hours = 24
+agent_version = ""
+min_pairs = 20
+# Recorded cases may contain PII. Redact private inputs and outputs before use.
+redact = ""                        # optional "module:function"
+# Keep .promptcheckup/cache/ out of version control.
