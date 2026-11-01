@@ -114,8 +114,10 @@ def decide(
     skewness = (sum(d**3 for d in deviations) / n) / sd**3 if sd > 0 else 0.0
     interval = {"ci_low": low * scale, "ci_high": high * scale}
 
+    # The guard targets a few large moves against the verdict: skewed toward them, and at
+    # least one of them bigger than the average effect. Small ones cannot hide a tail.
     if low > 0:
-        if skew_guard and skewness < -SKEW_LIMIT:
+        if skew_guard and skewness < -SKEW_LIMIT and -min(scaled) > mean_scaled:
             return Verdict(
                 "inconclusive",
                 f"looks better, but the differences are negatively skewed ({skewness:.2f}): "
@@ -127,7 +129,7 @@ def decide(
             "better", "the whole confidence interval is above zero", **interval, **counts
         )
     if high < 0:
-        if skew_guard and skewness > SKEW_LIMIT:
+        if skew_guard and skewness > SKEW_LIMIT and max(scaled) > -mean_scaled:
             return Verdict(
                 "inconclusive",
                 f"looks worse, but the differences are positively skewed ({skewness:.2f}): "
