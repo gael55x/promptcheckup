@@ -138,6 +138,7 @@ These rules hold for every module. CI enforces the first one.
 | | `gate.py`, `checkup.py`, `doctor.py`, `init.py` | One module per command |
 | | `main.py` | Argument parsing only: `init`, `gate`, `checkup`, `propose`, `evolve`, `doctor` |
 | | `templates/` | Workflow YAML, example config and example cases written by `init` |
+| (package root) | `testing.py` | Test-suite helpers: `gate`, `assert_better`, `assert_not_worse`, `assert_no_lookahead` (6.5). Imports like `cli`; nothing imports it |
 
 ```
 src/promptcheckup/
@@ -252,6 +253,24 @@ promptcheckup doctor                                # check the wiring before a 
 
 `doctor` exits 0 when no check failed (warnings allowed) and 3 otherwise. `evolve` exits 0 when at least one round passed.
 
+### 6.5 Testing helpers: `promptcheckup.testing`
+
+For engineers who already run a test suite. Plain functions, no pytest dependency: they raise `AssertionError`, which every test runner reports.
+
+```python
+from promptcheckup.testing import assert_better, assert_no_lookahead
+
+def test_new_prompt_is_better():
+    assert_better(run, cases, old_prompts, new_prompts, score=score, min_pairs=20)
+
+def test_agent_cannot_see_the_future():
+    assert_no_lookahead(build_input, history, decision_times, time_key="date")
+```
+
+- `gate(agent, cases, old, new, *, score=None, judge=None, criteria="", samples=2, min_pairs=20, confidence=0.95, max_calls=400) -> Evaluation` runs the same `evaluate` as the CLI. The agent is a plain `run(case, prompts)` function, and cases are `Case` objects or input dicts. Exactly one of `score` or `judge` (an LLM callable, with `criteria`) is required.
+- `assert_better(...)` passes on "better". `assert_not_worse(...)` passes unless the verdict is "worse". On failure, the message is the report's headline plus its stats line.
+- `assert_no_lookahead(view, history, decision_times, *, time_key="time")` handles a history of rows (dicts) with a time column. For each decision time it perturbs every number in every later row and requires `view(history, t)` to return an identical result. It fails naming the first decision time whose input changed. For other data shapes, the guide shows the same pattern written by hand, as in the trading example.
+
 ## 7. Core algorithms
 
 ### 7.1 Replay
@@ -326,7 +345,8 @@ This roughly doubles judge cost, so it runs **once per prompt hash** and is cach
 1. Use the current prompt hash on the same cases.
 2. Compare this run's outputs with the **snapshot from the last check-up**, using the same gate logic (7.2–7.3) and A = last snapshot.
 3. **worse** means a "drift" alert. The likely cause is the provider or the environment, because the prompt didn't change. If `agent_version` changed since the snapshot, the report says so.
-4. Save the snapshot. In CI it persists between runs using `actions/cache`, keyed by prompt hash.
+4. **No snapshot for this prompt yet?** The prompt changed since the last check-up. Compare with the **most recent snapshot of any prompt** instead, on the cases both share. **worse** then means "worse since the last check-up, which used a different prompt", with both prompt hashes in the report and exit code 1. This catches a prompt merged without running the gate. The cause can be the prompt or the environment; the report says both changed. With no snapshot at all, this is the first check-up.
+5. Save the snapshot. In CI it persists between runs using `actions/cache`. The key includes the prompt hash, and a fallback restore key without it brings back the previous prompt's snapshots after a prompt change.
 
 ### 7.6 Failure patterns (inside `checkup`)
 
@@ -472,7 +492,7 @@ These are deliberate boundaries for v1.0. Document them in the README so users a
    - How v1.0 limits the damage: replay runs A and B back-to-back for each case (7.1). If the noise is still too large, the gate falls back to **inconclusive** rather than giving a wrong verdict.
    - Full tool-call replay stays deferred (section 12) until a user needs it.
 4. **Case selection and look-ahead.** Choose cases before seeing results, preferably recorded production inputs or a fixed sampling rule. Keeping samples because they make a change look good is selection by outcome; the gate cannot correct it. Time-series cases must only expose data available at their decision time; see [Choosing cases](docs/connect-your-agent.md#choosing-cases) and the trading example's look-ahead test.
-5. **Unreviewed prompt merges.** Snapshots are keyed by prompt hash, so a newly merged prompt has no drift baseline. In the [simulated year](benchmarks/results/checkup_simulation.csv), **0/200** unreviewed regressions were flagged in their incident week. The **3.5%** flagged within the next two weeks were quiet-week false alarms against the new, already-regressed baseline, not evidence that the merge was detected. Run the gate before merging: weekly drift checks do not replace it.
+5. **Unreviewed prompt merges.** Before 7.5 step 4 existed, a newly merged prompt had no drift baseline: in the [simulated year](benchmarks/results/checkup_simulation.csv), **0/200** unreviewed regressions were flagged. The check-up now compares a new prompt with the previous prompt's snapshot (7.5 step 4); the simulated year measures how often that catches the regression. It only notices at the next weekly check-up, after the prompt is live, so run the gate before merging.
 
 ## 14. Validation before launch
 
@@ -501,7 +521,7 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Examples | Support-bot quickstart with real judge reports; trading example with recorded replies, a look-ahead test and outcome-blind cases | Done | LLM API key and budget (spent) |
 | Simulated year | 52 weekly check-ups with planted incidents, 200 repeats; detection, false alarms, proposal accuracy (section 14, item 5) | Done | — |
 | Evolve and trial ledger | `evolve` with held-out gating and per-round confidence; trial ledger; `run.confidence` (7.9–7.10) | Done | — |
-| Daily-workflow helpers | pytest helper for gating inside a test suite; look-ahead recipe for time-series agents | Planned | — |
+| Daily-workflow helpers | `promptcheckup.testing`: a pytest-friendly gate and a look-ahead check for time-series agents (6.5); the weekly check-up compares a new prompt with the previous one (7.5 step 4) | In progress | — |
 | Validation on real agents | Dogfood on LayeredMemoryTrader over real weeks | Later | 2+ weeks of real check-ups |
 | Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
 
