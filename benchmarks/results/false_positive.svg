@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 356" width="840" height="356" role="img" aria-label="False &quot;better&quot; rate by method, noise type and case count">
+<title>False &quot;better&quot; rate by method, noise type and case count</title>
+<style>
+  svg { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .bg { fill: #fcfcfb; } .ink { fill: #0b0b0b; } .ink2 { fill: #52514e; } .mute { fill: #898781; }
+  .grid { stroke: #e1e0d9; } .axis { stroke: #c3c2b7; } .ref { stroke: #898781; }
+  .s1 { stroke: #2a78d6; fill: #2a78d6; } .s2 { stroke: #eb6834; fill: #eb6834; }
+  .s3 { stroke: #1baf7a; fill: #1baf7a; }
+  .o1 { stroke: #86b6ef; fill: #86b6ef; } .o2 { stroke: #2a78d6; fill: #2a78d6; }
+  .o3 { stroke: #104281; fill: #104281; } .ring { stroke: #fcfcfb; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .ink { fill: #f0efec; } .ink2 { fill: #c3c2b7; }
+    .grid { stroke: #2c2c2a; } .axis { stroke: #383835; }
+    .s1 { stroke: #3987e5; fill: #3987e5; } .s2 { stroke: #d95926; fill: #d95926; }
+    .s3 { stroke: #199e70; fill: #199e70; }
+    .o1 { stroke: #184f95; fill: #184f95; } .o2 { stroke: #3987e5; fill: #3987e5; }
+    .o3 { stroke: #9ec5f4; fill: #9ec5f4; } .ring { stroke: #1a1a19; }
+  }
+</style>
+<rect class="bg" width="840" height="356" rx="8"/>
+<text class="ink" x="24.0" y="30.0" font-size="15" text-anchor="start" font-weight="500">False &quot;better&quot; verdicts when the prompt change did nothing</text>
+<line class="s1" x1="24" x2="42" y1="52" y2="52" stroke-width="2"/>
+<circle class="s1" cx="33" cy="52" r="4"/>
+<text class="ink2" x="48.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">Shipped: t-interval + skew guard</text>
+<line class="s3" x1="292" x2="310" y1="52" y2="52" stroke-width="2"/>
+<circle class="s3" cx="301" cy="52" r="4"/>
+<text class="ink2" x="316.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">t-interval alone</text>
+<line class="s2" x1="448" x2="466" y1="52" y2="52" stroke-width="2"/>
+<circle class="s2" cx="457" cy="52" r="4"/>
+<text class="ink2" x="472.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">Percentile bootstrap (rejected)</text>
+<text class="ink" x="60.0" y="88.0" font-size="13" text-anchor="start" font-weight="500">Normal noise</text>
+<line class="grid" x1="60" x2="220" y1="270.0" y2="270.0" stroke-width="1"/>
+<text class="mute" x="52.0" y="274.0" font-size="11" text-anchor="end" font-weight="400">0%</text>
+<line class="grid" x1="60" x2="220" y1="227.5" y2="227.5" stroke-width="1"/>
+<text class="mute" x="52.0" y="231.5" font-size="11" text-anchor="end" font-weight="400">4%</text>
+<line class="grid" x1="60" x2="220" y1="185.0" y2="185.0" stroke-width="1"/>
+<text class="mute" x="52.0" y="189.0" font-size="11" text-anchor="end" font-weight="400">8%</text>
+<line class="grid" x1="60" x2="220" y1="142.5" y2="142.5" stroke-width="1"/>
+<text class="mute" x="52.0" y="146.5" font-size="11" text-anchor="end" font-weight="400">12%</text>
+<line class="grid" x1="60" x2="220" y1="100.0" y2="100.0" stroke-width="1"/>
+<text class="mute" x="52.0" y="104.0" font-size="11" text-anchor="end" font-weight="400">16%</text>
+<line class="axis" x1="60" x2="220" y1="270" y2="270" stroke-width="1"/>
+<text class="mute" x="60.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">20</text>
+<text class="mute" x="86.7" y="286.0" font-size="11" text-anchor="middle" font-weight="400">30</text>
+<text class="mute" x="140.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<text class="mute" x="220.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">80</text>
+<line class="ref" x1="60" x2="220" y1="243.4" y2="243.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="s2" d="M60.0,238.1 L86.7,234.9 L140.0,239.2 L220.0,239.2" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s2" cx="60.0" cy="238.1" r="4"/>
+<circle class="ring" cx="60.0" cy="238.1" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="86.7" cy="234.9" r="4"/>
+<circle class="ring" cx="86.7" cy="234.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="140.0" cy="239.2" r="4"/>
+<circle class="ring" cx="140.0" cy="239.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="220.0" cy="239.2" r="4"/>
+<circle class="ring" cx="220.0" cy="239.2" r="5" fill="none" stroke-width="2"/>
+<path class="s3" d="M60.0,238.4 L86.7,244.0 L140.0,249.0 L220.0,246.6" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s3" cx="60.0" cy="238.4" r="4"/>
+<circle class="ring" cx="60.0" cy="238.4" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="86.7" cy="244.0" r="4"/>
+<circle class="ring" cx="86.7" cy="244.0" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="140.0" cy="249.0" r="4"/>
+<circle class="ring" cx="140.0" cy="249.0" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="220.0" cy="246.6" r="4"/>
+<circle class="ring" cx="220.0" cy="246.6" r="5" fill="none" stroke-width="2"/>
+<path class="s1" d="M60.0,243.7 L86.7,246.9 L140.0,244.2 L220.0,241.8" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s1" cx="60.0" cy="243.7" r="4"/>
+<circle class="ring" cx="60.0" cy="243.7" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="86.7" cy="246.9" r="4"/>
+<circle class="ring" cx="86.7" cy="246.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="140.0" cy="244.2" r="4"/>
+<circle class="ring" cx="140.0" cy="244.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="220.0" cy="241.8" r="4"/>
+<circle class="ring" cx="220.0" cy="241.8" r="5" fill="none" stroke-width="2"/>
+<text class="ink" x="255.0" y="88.0" font-size="13" text-anchor="start" font-weight="500">Heavy-tailed noise</text>
+<line class="grid" x1="255" x2="415" y1="270.0" y2="270.0" stroke-width="1"/>
+<line class="grid" x1="255" x2="415" y1="227.5" y2="227.5" stroke-width="1"/>
+<line class="grid" x1="255" x2="415" y1="185.0" y2="185.0" stroke-width="1"/>
+<line class="grid" x1="255" x2="415" y1="142.5" y2="142.5" stroke-width="1"/>
+<line class="grid" x1="255" x2="415" y1="100.0" y2="100.0" stroke-width="1"/>
+<line class="axis" x1="255" x2="415" y1="270" y2="270" stroke-width="1"/>
+<text class="mute" x="255.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">20</text>
+<text class="mute" x="281.7" y="286.0" font-size="11" text-anchor="middle" font-weight="400">30</text>
+<text class="mute" x="335.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<text class="mute" x="415.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">80</text>
+<line class="ref" x1="255" x2="415" y1="243.4" y2="243.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="s2" d="M255.0,227.5 L281.7,227.5 L335.0,227.5 L415.0,234.9" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s2" cx="255.0" cy="227.5" r="4"/>
+<circle class="ring" cx="255.0" cy="227.5" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="281.7" cy="227.5" r="4"/>
+<circle class="ring" cx="281.7" cy="227.5" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="335.0" cy="227.5" r="4"/>
+<circle class="ring" cx="335.0" cy="227.5" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="415.0" cy="234.9" r="4"/>
+<circle class="ring" cx="415.0" cy="234.9" r="5" fill="none" stroke-width="2"/>
+<path class="s3" d="M255.0,246.9 L281.7,244.0 L335.0,245.8 L415.0,247.4" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s3" cx="255.0" cy="246.9" r="4"/>
+<circle class="ring" cx="255.0" cy="246.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="281.7" cy="244.0" r="4"/>
+<circle class="ring" cx="281.7" cy="244.0" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="335.0" cy="245.8" r="4"/>
+<circle class="ring" cx="335.0" cy="245.8" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="415.0" cy="247.4" r="4"/>
+<circle class="ring" cx="415.0" cy="247.4" r="5" fill="none" stroke-width="2"/>
+<path class="s1" d="M255.0,246.9 L281.7,245.6 L335.0,242.6 L415.0,246.4" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s1" cx="255.0" cy="246.9" r="4"/>
+<circle class="ring" cx="255.0" cy="246.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="281.7" cy="245.6" r="4"/>
+<circle class="ring" cx="281.7" cy="245.6" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="335.0" cy="242.6" r="4"/>
+<circle class="ring" cx="335.0" cy="242.6" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="415.0" cy="246.4" r="4"/>
+<circle class="ring" cx="415.0" cy="246.4" r="5" fill="none" stroke-width="2"/>
+<text class="ink" x="450.0" y="88.0" font-size="13" text-anchor="start" font-weight="500">LLM-judge (−1/0/+1)</text>
+<line class="grid" x1="450" x2="610" y1="270.0" y2="270.0" stroke-width="1"/>
+<line class="grid" x1="450" x2="610" y1="227.5" y2="227.5" stroke-width="1"/>
+<line class="grid" x1="450" x2="610" y1="185.0" y2="185.0" stroke-width="1"/>
+<line class="grid" x1="450" x2="610" y1="142.5" y2="142.5" stroke-width="1"/>
+<line class="grid" x1="450" x2="610" y1="100.0" y2="100.0" stroke-width="1"/>
+<line class="axis" x1="450" x2="610" y1="270" y2="270" stroke-width="1"/>
+<text class="mute" x="450.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">20</text>
+<text class="mute" x="476.7" y="286.0" font-size="11" text-anchor="middle" font-weight="400">30</text>
+<text class="mute" x="530.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<text class="mute" x="610.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">80</text>
+<line class="ref" x1="450" x2="610" y1="243.4" y2="243.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="s2" d="M450.0,240.2 L476.7,242.4 L530.0,247.7 L610.0,237.1" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s2" cx="450.0" cy="240.2" r="4"/>
+<circle class="ring" cx="450.0" cy="240.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="476.7" cy="242.4" r="4"/>
+<circle class="ring" cx="476.7" cy="242.4" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="530.0" cy="247.7" r="4"/>
+<circle class="ring" cx="530.0" cy="247.7" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="610.0" cy="237.1" r="4"/>
+<circle class="ring" cx="610.0" cy="237.1" r="5" fill="none" stroke-width="2"/>
+<path class="s3" d="M450.0,242.9 L476.7,243.2 L530.0,249.0 L610.0,238.9" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s3" cx="450.0" cy="242.9" r="4"/>
+<circle class="ring" cx="450.0" cy="242.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="476.7" cy="243.2" r="4"/>
+<circle class="ring" cx="476.7" cy="243.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="530.0" cy="249.0" r="4"/>
+<circle class="ring" cx="530.0" cy="249.0" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="610.0" cy="238.9" r="4"/>
+<circle class="ring" cx="610.0" cy="238.9" r="5" fill="none" stroke-width="2"/>
+<path class="s1" d="M450.0,243.2 L476.7,242.1 L530.0,243.2 L610.0,245.8" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s1" cx="450.0" cy="243.2" r="4"/>
+<circle class="ring" cx="450.0" cy="243.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="476.7" cy="242.1" r="4"/>
+<circle class="ring" cx="476.7" cy="242.1" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="530.0" cy="243.2" r="4"/>
+<circle class="ring" cx="530.0" cy="243.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="610.0" cy="245.8" r="4"/>
+<circle class="ring" cx="610.0" cy="245.8" r="5" fill="none" stroke-width="2"/>
+<text class="ink" x="645.0" y="88.0" font-size="13" text-anchor="start" font-weight="500">P&amp;L crash skew</text>
+<line class="grid" x1="645" x2="805" y1="270.0" y2="270.0" stroke-width="1"/>
+<line class="grid" x1="645" x2="805" y1="227.5" y2="227.5" stroke-width="1"/>
+<line class="grid" x1="645" x2="805" y1="185.0" y2="185.0" stroke-width="1"/>
+<line class="grid" x1="645" x2="805" y1="142.5" y2="142.5" stroke-width="1"/>
+<line class="grid" x1="645" x2="805" y1="100.0" y2="100.0" stroke-width="1"/>
+<line class="axis" x1="645" x2="805" y1="270" y2="270" stroke-width="1"/>
+<text class="mute" x="645.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">20</text>
+<text class="mute" x="671.7" y="286.0" font-size="11" text-anchor="middle" font-weight="400">30</text>
+<text class="mute" x="725.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<text class="mute" x="805.0" y="286.0" font-size="11" text-anchor="middle" font-weight="400">80</text>
+<line class="ref" x1="645" x2="805" y1="243.4" y2="243.4" stroke-width="1.5" stroke-dasharray="5 4"/>
+<path class="s2" d="M645.0,127.6 L671.7,165.9 L725.0,156.3 L805.0,191.4" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s2" cx="645.0" cy="127.6" r="4"/>
+<circle class="ring" cx="645.0" cy="127.6" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="671.7" cy="165.9" r="4"/>
+<circle class="ring" cx="671.7" cy="165.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="725.0" cy="156.3" r="4"/>
+<circle class="ring" cx="725.0" cy="156.3" r="5" fill="none" stroke-width="2"/>
+<circle class="s2" cx="805.0" cy="191.4" r="4"/>
+<circle class="ring" cx="805.0" cy="191.4" r="5" fill="none" stroke-width="2"/>
+<path class="s3" d="M645.0,134.8 L671.7,149.9 L725.0,171.2 L805.0,176.0" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s3" cx="645.0" cy="134.8" r="4"/>
+<circle class="ring" cx="645.0" cy="134.8" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="671.7" cy="149.9" r="4"/>
+<circle class="ring" cx="671.7" cy="149.9" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="725.0" cy="171.2" r="4"/>
+<circle class="ring" cx="725.0" cy="171.2" r="5" fill="none" stroke-width="2"/>
+<circle class="s3" cx="805.0" cy="176.0" r="4"/>
+<circle class="ring" cx="805.0" cy="176.0" r="5" fill="none" stroke-width="2"/>
+<path class="s1" d="M645.0,255.1 L671.7,266.8 L725.0,269.7 L805.0,270.0" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="s1" cx="645.0" cy="255.1" r="4"/>
+<circle class="ring" cx="645.0" cy="255.1" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="671.7" cy="266.8" r="4"/>
+<circle class="ring" cx="671.7" cy="266.8" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="725.0" cy="269.7" r="4"/>
+<circle class="ring" cx="725.0" cy="269.7" r="5" fill="none" stroke-width="2"/>
+<circle class="s1" cx="805.0" cy="270.0" r="4"/>
+<circle class="ring" cx="805.0" cy="270.0" r="5" fill="none" stroke-width="2"/>
+<text class="mute" x="430.0" y="312.0" font-size="12" text-anchor="middle" font-weight="400">Number of cases</text>
+<text class="mute" x="24.0" y="340.0" font-size="11" text-anchor="start" font-weight="400">Dashed line: 2.5% target. t-interval: 4,000 simulations per point; bootstrap: 1,000. Judge preferences run without the skew guard (bounded scores).</text>
+</svg>

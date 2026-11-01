@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 404" width="720" height="404" role="img" aria-label="Detection rate by improvement size and case count">
+<title>Detection rate by improvement size and case count</title>
+<style>
+  svg { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .bg { fill: #fcfcfb; } .ink { fill: #0b0b0b; } .ink2 { fill: #52514e; } .mute { fill: #898781; }
+  .grid { stroke: #e1e0d9; } .axis { stroke: #c3c2b7; } .ref { stroke: #898781; }
+  .s1 { stroke: #2a78d6; fill: #2a78d6; } .s2 { stroke: #eb6834; fill: #eb6834; }
+  .s3 { stroke: #1baf7a; fill: #1baf7a; }
+  .o1 { stroke: #86b6ef; fill: #86b6ef; } .o2 { stroke: #2a78d6; fill: #2a78d6; }
+  .o3 { stroke: #104281; fill: #104281; } .ring { stroke: #fcfcfb; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .ink { fill: #f0efec; } .ink2 { fill: #c3c2b7; }
+    .grid { stroke: #2c2c2a; } .axis { stroke: #383835; }
+    .s1 { stroke: #3987e5; fill: #3987e5; } .s2 { stroke: #d95926; fill: #d95926; }
+    .s3 { stroke: #199e70; fill: #199e70; }
+    .o1 { stroke: #184f95; fill: #184f95; } .o2 { stroke: #3987e5; fill: #3987e5; }
+    .o3 { stroke: #9ec5f4; fill: #9ec5f4; } .ring { stroke: #1a1a19; }
+  }
+</style>
+<rect class="bg" width="720" height="404" rx="8"/>
+<text class="ink" x="24.0" y="30.0" font-size="15" text-anchor="start" font-weight="500">How often the gate detects a real improvement</text>
+<line class="o3" x1="24" x2="42" y1="52" y2="52" stroke-width="2"/>
+<circle class="o3" cx="33" cy="52" r="4"/>
+<text class="ink2" x="48.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">Large (0.8 SD)</text>
+<line class="o2" x1="166" x2="184" y1="52" y2="52" stroke-width="2"/>
+<circle class="o2" cx="175" cy="52" r="4"/>
+<text class="ink2" x="190.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">Medium (0.5 SD)</text>
+<line class="o1" x1="315" x2="333" y1="52" y2="52" stroke-width="2"/>
+<circle class="o1" cx="324" cy="52" r="4"/>
+<text class="ink2" x="339.0" y="56.0" font-size="12" text-anchor="start" font-weight="400">Small (0.2 SD)</text>
+<text class="ink" x="70.0" y="88.0" font-size="13" text-anchor="start" font-weight="500">Detected as “better”</text>
+<line class="grid" x1="70" x2="630" y1="320.0" y2="320.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="324.0" font-size="11" text-anchor="end" font-weight="400">0%</text>
+<line class="grid" x1="70" x2="630" y1="276.0" y2="276.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="280.0" font-size="11" text-anchor="end" font-weight="400">20%</text>
+<line class="grid" x1="70" x2="630" y1="232.0" y2="232.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="236.0" font-size="11" text-anchor="end" font-weight="400">40%</text>
+<line class="grid" x1="70" x2="630" y1="188.0" y2="188.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="192.0" font-size="11" text-anchor="end" font-weight="400">60%</text>
+<line class="grid" x1="70" x2="630" y1="144.0" y2="144.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="148.0" font-size="11" text-anchor="end" font-weight="400">80%</text>
+<line class="grid" x1="70" x2="630" y1="100.0" y2="100.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="104.0" font-size="11" text-anchor="end" font-weight="400">100%</text>
+<line class="axis" x1="70" x2="630" y1="320" y2="320" stroke-width="1"/>
+<text class="mute" x="70.0" y="336.0" font-size="11" text-anchor="middle" font-weight="400">20</text>
+<text class="mute" x="126.0" y="336.0" font-size="11" text-anchor="middle" font-weight="400">30</text>
+<text class="mute" x="238.0" y="336.0" font-size="11" text-anchor="middle" font-weight="400">50</text>
+<text class="mute" x="406.0" y="336.0" font-size="11" text-anchor="middle" font-weight="400">80</text>
+<text class="mute" x="630.0" y="336.0" font-size="11" text-anchor="middle" font-weight="400">120</text>
+<line class="ref" x1="70" x2="630" y1="144.0" y2="144.0" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text class="mute" x="630.0" y="139.0" font-size="11" text-anchor="end" font-weight="400">80% detection</text>
+<path class="o1" d="M70.0,296.4 L126.0,282.3 L238.0,259.3 L406.0,229.2 L630.0,191.3" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="o1" cx="70.0" cy="296.4" r="4"/>
+<circle class="ring" cx="70.0" cy="296.4" r="5" fill="none" stroke-width="2"/>
+<circle class="o1" cx="126.0" cy="282.3" r="4"/>
+<circle class="ring" cx="126.0" cy="282.3" r="5" fill="none" stroke-width="2"/>
+<circle class="o1" cx="238.0" cy="259.3" r="4"/>
+<circle class="ring" cx="238.0" cy="259.3" r="5" fill="none" stroke-width="2"/>
+<circle class="o1" cx="406.0" cy="229.2" r="4"/>
+<circle class="ring" cx="406.0" cy="229.2" r="5" fill="none" stroke-width="2"/>
+<circle class="o1" cx="630.0" cy="191.3" r="4"/>
+<circle class="ring" cx="630.0" cy="191.3" r="5" fill="none" stroke-width="2"/>
+<path class="o2" d="M70.0,210.7 L126.0,170.1 L238.0,126.3 L406.0,109.5 L630.0,102.1" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="o2" cx="70.0" cy="210.7" r="4"/>
+<circle class="ring" cx="70.0" cy="210.7" r="5" fill="none" stroke-width="2"/>
+<circle class="o2" cx="126.0" cy="170.1" r="4"/>
+<circle class="ring" cx="126.0" cy="170.1" r="5" fill="none" stroke-width="2"/>
+<circle class="o2" cx="238.0" cy="126.3" r="4"/>
+<circle class="ring" cx="238.0" cy="126.3" r="5" fill="none" stroke-width="2"/>
+<circle class="o2" cx="406.0" cy="109.5" r="4"/>
+<circle class="ring" cx="406.0" cy="109.5" r="5" fill="none" stroke-width="2"/>
+<circle class="o2" cx="630.0" cy="102.1" r="4"/>
+<circle class="ring" cx="630.0" cy="102.1" r="5" fill="none" stroke-width="2"/>
+<path class="o3" d="M70.0,141.9 L126.0,121.0 L238.0,112.0 L406.0,104.9 L630.0,104.0" style="fill:none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle class="o3" cx="70.0" cy="141.9" r="4"/>
+<circle class="ring" cx="70.0" cy="141.9" r="5" fill="none" stroke-width="2"/>
+<circle class="o3" cx="126.0" cy="121.0" r="4"/>
+<circle class="ring" cx="126.0" cy="121.0" r="5" fill="none" stroke-width="2"/>
+<circle class="o3" cx="238.0" cy="112.0" r="4"/>
+<circle class="ring" cx="238.0" cy="112.0" r="5" fill="none" stroke-width="2"/>
+<circle class="o3" cx="406.0" cy="104.9" r="4"/>
+<circle class="ring" cx="406.0" cy="104.9" r="5" fill="none" stroke-width="2"/>
+<circle class="o3" cx="630.0" cy="104.0" r="4"/>
+<circle class="ring" cx="630.0" cy="104.0" r="5" fill="none" stroke-width="2"/>
+<text class="mute" x="350.0" y="360.0" font-size="12" text-anchor="middle" font-weight="400">Number of cases</text>
+<text class="mute" x="24.0" y="388.0" font-size="11" text-anchor="start" font-weight="400">Improvement size is in standard deviations of the per-case difference. 2,000 simulations per point.</text>
+</svg>

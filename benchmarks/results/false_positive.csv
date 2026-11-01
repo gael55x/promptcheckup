@@ -1,0 +1,49 @@
+noise,cases,method,false_better_rate,simulations
+normal,20,shipped: paired t + skew guard,0.02475,4000
+normal,20,paired t without skew guard,0.02975,4000
+normal,20,percentile bootstrap (rejected),0.03,1000
+normal,30,shipped: paired t + skew guard,0.02175,4000
+normal,30,paired t without skew guard,0.0245,4000
+normal,30,percentile bootstrap (rejected),0.033,1000
+normal,50,shipped: paired t + skew guard,0.02425,4000
+normal,50,paired t without skew guard,0.01975,4000
+normal,50,percentile bootstrap (rejected),0.029,1000
+normal,80,shipped: paired t + skew guard,0.0265,4000
+normal,80,paired t without skew guard,0.022,4000
+normal,80,percentile bootstrap (rejected),0.029,1000
+heavy_tailed,20,shipped: paired t + skew guard,0.02175,4000
+heavy_tailed,20,paired t without skew guard,0.02175,4000
+heavy_tailed,20,percentile bootstrap (rejected),0.04,1000
+heavy_tailed,30,shipped: paired t + skew guard,0.023,4000
+heavy_tailed,30,paired t without skew guard,0.0245,4000
+heavy_tailed,30,percentile bootstrap (rejected),0.04,1000
+heavy_tailed,50,shipped: paired t + skew guard,0.02575,4000
+heavy_tailed,50,paired t without skew guard,0.02275,4000
+heavy_tailed,50,percentile bootstrap (rejected),0.04,1000
+heavy_tailed,80,shipped: paired t + skew guard,0.02225,4000
+heavy_tailed,80,paired t without skew guard,0.02125,4000
+heavy_tailed,80,percentile bootstrap (rejected),0.033,1000
+judge,20,shipped: paired t + skew guard,0.02525,4000
+judge,20,paired t without skew guard,0.0255,4000
+judge,20,percentile bootstrap (rejected),0.028,1000
+judge,30,shipped: paired t + skew guard,0.02625,4000
+judge,30,paired t without skew guard,0.02525,4000
+judge,30,percentile bootstrap (rejected),0.026,1000
+judge,50,shipped: paired t + skew guard,0.02525,4000
+judge,50,paired t without skew guard,0.01975,4000
+judge,50,percentile bootstrap (rejected),0.021,1000
+judge,80,shipped: paired t + skew guard,0.02275,4000
+judge,80,paired t without skew guard,0.02925,4000
+judge,80,percentile bootstrap (rejected),0.031,1000
+crash_skew,20,shipped: paired t + skew guard,0.014,4000
+crash_skew,20,paired t without skew guard,0.12725,4000
+crash_skew,20,percentile bootstrap (rejected),0.134,1000
+crash_skew,30,shipped: paired t + skew guard,0.003,4000
+crash_skew,30,paired t without skew guard,0.113,4000
+crash_skew,30,percentile bootstrap (rejected),0.098,1000
+crash_skew,50,shipped: paired t + skew guard,0.00025,4000
+crash_skew,50,paired t without skew guard,0.093,4000
+crash_skew,50,percentile bootstrap (rejected),0.107,1000
+crash_skew,80,shipped: paired t + skew guard,0.0,4000
+crash_skew,80,paired t without skew guard,0.0885,4000
+crash_skew,80,percentile bootstrap (rejected),0.074,1000
