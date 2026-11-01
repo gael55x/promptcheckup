@@ -89,6 +89,15 @@ def test_outputs_are_truncated_and_markdown_is_escaped():
     assert r"\|" in text
 
 
+def test_quotes_in_outputs_stay_readable():
+    result = evaluation([2] * 5)
+    runs = [replace(run, output={"answer": 'it\'s "fine"'}) for run in result.replay.runs]
+    text = report(replace(result, replay=replace(result.replay, runs=runs)))
+
+    assert '{"answer": "it\'s \\"fine\\""}' in text
+    assert "&quot;" not in text and "&#x27;" not in text
+
+
 def test_report_contains_self_check_failures_usage_hashes_and_version_in_order():
     result = evaluation([2] * 5)
     error = Run("failed", "B", 1, error="could not answer")
