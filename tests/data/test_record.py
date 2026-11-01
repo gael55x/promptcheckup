@@ -226,3 +226,17 @@ def test_record_concurrent_decorators_write_complete_lines(tmp_path):
             "source": "recorded",
             "output": outputs[index],
         }
+
+
+def test_recording_warning_points_at_the_production_call_site(tmp_path):
+    blocked = tmp_path / "file"
+    blocked.write_text("not a directory", encoding="utf-8")
+
+    @record(blocked / "cases.jsonl")
+    def handle(case):
+        return "ok"
+
+    with pytest.warns(RuntimeWarning) as caught:
+        handle({"q": 1})  # the warning should point at this line, not at library code
+
+    assert caught[0].filename == __file__

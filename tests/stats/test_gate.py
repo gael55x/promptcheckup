@@ -1,10 +1,16 @@
 import math
 import random
 from math import comb
+from pathlib import Path
+from runpy import run_path
 
 import pytest
 
 from promptcheckup.stats import decide, t_quantile
+
+null_samples = run_path(str(Path(__file__).parents[2] / "benchmarks" / "run_gate_benchmark.py"))[
+    "null_samples"
+]
 
 
 def noisy(mean: float, n: int, sd: float, seed: int) -> list[float]:
@@ -157,23 +163,6 @@ def test_positive_skew_blocks_worse():
 )
 def test_t_quantile_matches_table(p, df, expected):
     assert t_quantile(p, df) == pytest.approx(expected, abs=1e-4)
-
-
-def null_samples(kind: str, n: int, rng: random.Random) -> list[float]:
-    """Paired differences when the prompt change does nothing (true mean exactly 0)."""
-    if kind == "normal":
-        return [rng.gauss(0, 1) for _ in range(n)]
-    if kind == "heavy_tailed":  # Student t with 3 degrees of freedom
-        return [rng.gauss(0, 1) / math.sqrt(rng.gammavariate(1.5, 2) / 3) for _ in range(n)]
-    if kind == "judge":  # mean of 2 order-swapped judgments, each -1 / 0 / +1
-        return [sum(rng.choice((-1, 0, 0, 1)) for _ in range(2)) / 2 for _ in range(n)]
-    if kind == "crash_skew":  # P&L-style: small gains, rare large losses (skewness -6.2)
-        return [-(math.exp(rng.gauss(0, 1)) - math.exp(0.5)) for _ in range(n)]
-    if kind == "mild_skew":  # skewness -0.78, the hardest case for the skew guard
-        return [-(math.exp(rng.gauss(0, 0.25)) - math.exp(0.03125)) for _ in range(n)]
-    if kind == "two_point_skew":  # +0.5 two days in three, -1 otherwise
-        return [0.5 if rng.random() < 2 / 3 else -1.0 for _ in range(n)]
-    raise AssertionError(kind)
 
 
 # A false "better" is the worst bug this product can have (DESIGN.md, section 3).

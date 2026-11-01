@@ -8,6 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from promptcheckup.data.cases import Case, append_cases, case_id
+from promptcheckup.errors import fallback
+
+# warnings.warn -> lambda -> fallback -> _warn_recording -> handler lambda -> fallback
+# -> wrapped -> the production call site. Pointing there shows users their own code.
+CALL_SITE_STACKLEVEL = 7
 
 
 def record(path: str | Path, *, redact: Callable[[Any], Any] | None = None):
@@ -17,26 +22,35 @@ def record(path: str | Path, *, redact: Callable[[Any], Any] | None = None):
         @wraps(function)
         def wrapped(case: dict[str, Any], *args, **kwargs):
             output = function(case, *args, **kwargs)
-            try:
-                recorded_input = redact(deepcopy(case)) if redact is not None else case
-                recorded_output = redact(deepcopy(output)) if redact is not None else output
-                if not isinstance(recorded_input, dict):
-                    raise TypeError("redacted input must be a JSON object")
-                recorded = Case(
-                    case_id(recorded_input), recorded_input, "recorded", recorded_output
-                )
-                append_cases(Path(path), [recorded])
-            except Exception as e:
-                # Recording failures must not change a successful production call.
-                try:
-                    warnings.warn(
-                        f"Could not record case to {path}: {e}", RuntimeWarning, stacklevel=2
-                    )
-                except RuntimeWarning:
-                    # Preserve the result even when warnings are configured as errors.
-                    pass
+            fallback(
+                lambda: _record_case(path, case, output, redact),
+                lambda error: _warn_recording(path, error),
+                Exception,
+            )
             return output
 
         return wrapped
 
     return decorate
+
+
+def _record_case(path, case, output, redact) -> None:
+    recorded_input = redact(deepcopy(case)) if redact is not None else case
+    recorded_output = redact(deepcopy(output)) if redact is not None else output
+    if not isinstance(recorded_input, dict):
+        raise TypeError("redacted input must be a JSON object")
+    recorded = Case(case_id(recorded_input), recorded_input, "recorded", recorded_output)
+    append_cases(Path(path), [recorded])
+
+
+def _warn_recording(path, error: Exception) -> None:
+    # Preserve the production result even when warnings are configured as errors.
+    fallback(
+        lambda: warnings.warn(
+            f"Could not record case to {path}: {error}",
+            RuntimeWarning,
+            stacklevel=CALL_SITE_STACKLEVEL,
+        ),
+        lambda warning: None,
+        RuntimeWarning,
+    )

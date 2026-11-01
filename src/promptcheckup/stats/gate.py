@@ -12,6 +12,28 @@ MIN_CONFIDENCE, MAX_CONFIDENCE = 0.5, 0.999
 SKEW_LIMIT = 0.5
 
 
+INTERVAL_DECISIONS = (
+    (lambda low, high: low > 0, "better", "the whole confidence interval is above zero"),
+    (lambda low, high: high < 0, "worse", "the whole confidence interval is below zero"),
+)
+SKEW_DOWNGRADES = (
+    (
+        lambda decision, skew, scaled, mean: (
+            decision == "better" and skew < -SKEW_LIMIT and -min(scaled) > mean
+        ),
+        "looks better, but the differences are negatively skewed ({skewness:.2f}): "
+        "a few large losses could decide the outcome; add more cases",
+    ),
+    (
+        lambda decision, skew, scaled, mean: (
+            decision == "worse" and skew > SKEW_LIMIT and max(scaled) > -mean
+        ),
+        "looks worse, but the differences are positively skewed ({skewness:.2f}): "
+        "a few large gains could decide the outcome; add more cases",
+    ),
+)
+
+
 @dataclass(frozen=True)
 class Verdict:
     decision: Decision
@@ -75,6 +97,24 @@ def decide(
     with a few large losses, because no interval is reliable there at small sample sizes.
     Turn it off only for bounded scores such as LLM-judge preferences in [-1, 1].
     """
+    values = _validated_values(diffs, min_pairs, confidence)
+    scaled, scale, mean_scaled, counts = _summary(values)
+    interval, skewness = _interval(scaled, mean_scaled, min_pairs, confidence)
+    decision, reason = _decision(interval, len(values), min_pairs)
+    decision, reason = _guarded_decision(
+        decision, reason, skew_guard, skewness, scaled, mean_scaled
+    )
+    low, high = interval
+    return Verdict(
+        decision,
+        reason,
+        ci_low=low * scale if low is not None else None,
+        ci_high=high * scale if high is not None else None,
+        **counts,
+    )
+
+
+def _validated_values(diffs, min_pairs, confidence) -> list[float]:
     values = [float(d) for d in diffs]
     if any(not math.isfinite(v) for v in values):
         raise ValueError("paired differences must be finite numbers")
@@ -82,9 +122,12 @@ def decide(
         raise ValueError(f"confidence must be between {MIN_CONFIDENCE} and {MAX_CONFIDENCE}")
     if min_pairs < 5:
         raise ValueError("min_pairs must be at least 5")
+    return values
 
+
+def _summary(values):
     n = len(values)
-    # Work on values scaled into [-1, 1] so tiny or huge scores neither underflow nor overflow.
+    # Scale into [-1, 1] so tiny or huge scores neither underflow nor overflow.
     scale = max((abs(v) for v in values), default=0.0) or 1.0
     scaled = [v / scale for v in values]
     mean_scaled = sum(scaled) / n if n else 0.0
@@ -97,45 +140,36 @@ def decide(
         "losses": losses,
         "ties": n - wins - losses,
     }
+    return scaled, scale, mean_scaled, counts
 
+
+def _interval(scaled, mean_scaled, min_pairs, confidence):
+    n = len(scaled)
     if n < min_pairs:
-        return Verdict(
-            "inconclusive",
-            f"need at least {min_pairs} cases, got {n}",
-            ci_low=None,
-            ci_high=None,
-            **counts,
-        )
-
+        return (None, None), 0.0
     deviations = [v - mean_scaled for v in scaled]
     sd = math.sqrt(sum(d * d for d in deviations) / (n - 1))
     half_width = t_quantile(1 - (1 - confidence) / 2, n - 1) * sd / math.sqrt(n)
     low, high = mean_scaled - half_width, mean_scaled + half_width
     skewness = (sum(d**3 for d in deviations) / n) / sd**3 if sd > 0 else 0.0
-    interval = {"ci_low": low * scale, "ci_high": high * scale}
+    return (low, high), skewness
 
-    # The guard targets a few large moves against the verdict: skewed toward them, and at
-    # least one of them bigger than the average effect. Small ones cannot hide a tail.
-    if low > 0:
-        if skew_guard and skewness < -SKEW_LIMIT and -min(scaled) > mean_scaled:
-            return Verdict(
-                "inconclusive",
-                f"looks better, but the differences are negatively skewed ({skewness:.2f}): "
-                "a few large losses could decide the outcome; add more cases",
-                **interval,
-                **counts,
-            )
-        return Verdict(
-            "better", "the whole confidence interval is above zero", **interval, **counts
-        )
-    if high < 0:
-        if skew_guard and skewness > SKEW_LIMIT and max(scaled) > -mean_scaled:
-            return Verdict(
-                "inconclusive",
-                f"looks worse, but the differences are positively skewed ({skewness:.2f}): "
-                "a few large gains could decide the outcome; add more cases",
-                **interval,
-                **counts,
-            )
-        return Verdict("worse", "the whole confidence interval is below zero", **interval, **counts)
-    return Verdict("inconclusive", "the confidence interval includes zero", **interval, **counts)
+
+def _decision(interval, n, min_pairs) -> tuple[Decision, str]:
+    low, high = interval
+    if low is None:
+        return "inconclusive", f"need at least {min_pairs} cases, got {n}"
+    for predicate, decision, reason in INTERVAL_DECISIONS:
+        if predicate(low, high):
+            return decision, reason
+    return "inconclusive", "the confidence interval includes zero"
+
+
+def _guarded_decision(
+    decision, reason, skew_guard, skewness, scaled, mean_scaled
+) -> tuple[Decision, str]:
+    # A few moves against the verdict must exceed the average effect to hide a tail.
+    for predicate, message in SKEW_DOWNGRADES:
+        if skew_guard and predicate(decision, skewness, scaled, mean_scaled):
+            return "inconclusive", message.format(skewness=skewness)
+    return decision, reason
