@@ -25,4 +25,7 @@ target-version = "py311"
 extend-exclude = ["*.md"]  # keep hand-formatted examples in docs readable
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
+select = ["E", "F", "I", "B", "UP", "SIM", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5  # small functions, one job each (DESIGN.md, code style)
