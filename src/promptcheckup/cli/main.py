@@ -7,6 +7,7 @@ from pathlib import Path
 from promptcheckup.cli.checkup import weekly
 from promptcheckup.cli.config import ConfigError
 from promptcheckup.cli.doctor import doctor
+from promptcheckup.cli.evolve import evolution
 from promptcheckup.cli.gate import gate
 from promptcheckup.cli.init import initialize
 from promptcheckup.errors import errors_as, fallback
@@ -19,6 +20,7 @@ COMMANDS = {
     "checkup": weekly,
     "propose": weekly,
     "doctor": doctor,
+    "evolve": evolution,
 }
 
 
@@ -58,6 +60,10 @@ def _parser():
         command = commands.add_parser(name, help=f"run a {name} and gate any proposed edit")
         _common_arguments(command)
         command.add_argument("--proposal-out", type=Path)
+    evolution_parser = commands.add_parser("evolve", help="evolve prompts against held-out cases")
+    _common_arguments(evolution_parser)
+    evolution_parser.add_argument("--rounds", type=int, default=5)
+    evolution_parser.add_argument("--holdout", type=float, default=0.3)
     return parser
 
 

@@ -72,6 +72,10 @@ RULES = tuple(
         lambda c: c.llm is None or c.llm.temperature is None or _temperature(c.llm.temperature),
         "llm.temperature must be a number from 0 to 2",
     ),
+    (
+        lambda c: type(c.run.confidence) in (int, float) and 0.5 <= c.run.confidence <= 0.999,
+        "run.confidence must be between 0.5 and 0.999",
+    ),
     (lambda c: _positive(c.agent.timeout_s), "agent.timeout_s must be positive"),
     (lambda c: _positive(c.run.cache_ttl_hours), "run.cache_ttl_hours must be positive"),
 )
@@ -123,6 +127,7 @@ class RunConfig:
     agent_version: str = ""
     min_pairs: int = 20
     redact: str = ""
+    confidence: float = 0.95
 
 
 @dataclass(frozen=True)
