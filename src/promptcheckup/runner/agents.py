@@ -26,7 +26,7 @@ def function_agent(function: UserFunction) -> Agent:
 
 def python_agent(entry: str) -> Agent:
     """Load `package.module:function` and adapt it like `function_agent`."""
-    return function_agent(_load_function(entry))
+    return function_agent(load_function(entry))
 
 
 def command_agent(cmd: Sequence[str]) -> Agent:
@@ -48,7 +48,8 @@ def call_agent(
     return output
 
 
-def _load_function(entry: str) -> UserFunction:
+def load_function(entry: str) -> Callable:
+    """Load a callable from `package.module:function` for agents, scores or redaction."""
     module_name, _, attribute = entry.partition(":")
     if not module_name or not attribute or ":" in attribute:
         raise AgentError(f"invalid entry {entry!r}; expected package.module:function")
