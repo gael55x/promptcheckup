@@ -52,7 +52,9 @@ def _load_function(entry: str) -> UserFunction:
     module_name, _, attribute = entry.partition(":")
     if not module_name or not attribute or ":" in attribute:
         raise AgentError(f"invalid entry {entry!r}; expected package.module:function")
-    with errors_as(AgentError, {Exception: f"could not import {module_name!r}: {{error}}"}):
+    with errors_as(
+        AgentError, {Exception: lambda error: f"could not import {module_name!r}: {error}"}
+    ):
         module = importlib.import_module(module_name)
     function = getattr(module, attribute, None)
     if not callable(function):
@@ -70,14 +72,14 @@ def _with_timeout(function: UserFunction, args: tuple, timeout_s: float) -> Any:
 
 def _guarded(function: UserFunction, args: tuple) -> Any:
     # Inside the thread, so an agent's own TimeoutError is never mistaken for the deadline.
-    with errors_as(AgentError, {Exception: "Python agent failed: {error}"}):
+    with errors_as(AgentError, {Exception: lambda error: f"Python agent failed: {error}"}):
         return function(*args)
 
 
 def _run_command(argv: tuple[str, ...], payload: dict, timeout_s: float) -> Any:
     failures = {
         subprocess.TimeoutExpired: f"command agent timed out after {timeout_s:g}s",
-        OSError: "could not run command agent: {error}",
+        OSError: lambda error: f"could not run command agent: {error}",
     }
     with errors_as(AgentError, failures):
         result = subprocess.run(
