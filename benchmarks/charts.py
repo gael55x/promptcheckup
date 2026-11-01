@@ -1,6 +1,6 @@
 """Render benchmark CSVs from benchmarks/results/ as static SVG charts (light and dark aware).
 
-Run after run_gate_benchmark.py:
+Run after run_gate_benchmark.py and run_checkup_simulation.py:
 
     python benchmarks/charts.py
 """
@@ -21,6 +21,16 @@ NOISE_TITLES = MappingProxyType(
         "crash_skew": "P&L crash skew",
     }
 )
+INCIDENT_TITLES = MappingProxyType(
+    {
+        "harmful_provider": ("Harmful", "provider change"),
+        "harmless_provider": ("Harmless", "provider change"),
+        "real_fix": ("Real fix", "proposed"),
+        "useless_fix": ("Useless fix", "proposed"),
+        "unreviewed_regression": ("Unreviewed", "prompt regression"),
+    }
+)
+PROPOSAL_MARKERS = (("kept", "s3", 376), ("rejected", "s2", 407))
 SHIPPED, PLAIN, BOOT = (
     "shipped: paired t + skew guard",
     "paired t without skew guard",
@@ -310,11 +320,95 @@ def naive_vs_paired_chart() -> str:
     return svg(720, 236, "Wrong-prompt rate: naive comparison vs paired replay", body)
 
 
+def _timeline_bars(by_week, sx, sy):
+    out = []
+    for week, rows in sorted(by_week.items()):
+        rate = 100 * sum(row["drift_decision"] == "worse" for row in rows) / len(rows)
+        out.append(
+            f'<rect class="s1" x="{sx(week) - 4:.1f}" y="{sy(rate):.1f}" '
+            f'width="8" height="{sy(0) - sy(rate):.1f}">'
+            f"<title>Week {week}: {rate:.1f}% flagged drift</title></rect>"
+        )
+    return out
+
+
+def _incident_markers(rows, sx, bottom):
+    incidents = {(int(row["week"]), row["incident"]) for row in rows if row["incident"] != "quiet"}
+    out = []
+    for week, kind in sorted(incidents):
+        first, second = INCIDENT_TITLES[kind]
+        x = sx(week)
+        out.extend(
+            [
+                f'<g id="incident-{kind}"><title>Week {week}: {first} {second}</title>',
+                text(x, 80, first, cls="ink", size=11, anchor="middle", weight=500),
+                text(x, 95, second, size=11, anchor="middle"),
+                f'<line class="ref" x1="{x:.1f}" x2="{x:.1f}" y1="140" y2="{bottom:.1f}" '
+                'stroke-width="1" stroke-dasharray="3 4"/>',
+                # Neutral ink: an incident is not a proposal outcome, so it gets no series colour.
+                f'<path class="ink" d="M{x:.1f},103 l4,5 l-4,5 l-4,-5 Z"/>',
+                "</g>",
+            ]
+        )
+    return out
+
+
+def _proposal_markers(by_week, sx):
+    out = []
+    for outcome, cls, y in PROPOSAL_MARKERS:
+        out.append(f'<g id="proposal-{outcome}">')
+        for week, rows in sorted(by_week.items()):
+            count = sum(row["proposal_outcome"] == outcome for row in rows)
+            if count:
+                label = f"{100 * count / len(rows):.1f}% {outcome}"
+                out.append(
+                    f'<circle class="{cls}" cx="{sx(week):.1f}" cy="{y}" r="4">'
+                    f"<title>Week {week}: {label}</title></circle>"
+                )
+                out.append(text(sx(week), y + 16, label, size=11, anchor="middle"))
+        out.append("</g>")
+    return out
+
+
+def checkup_timeline_chart(path: Path = RESULTS / "checkup_simulation.csv") -> str:
+    with path.open() as stream:
+        rows = list(csv.DictReader(stream))
+    by_week = defaultdict(list)
+    for row in rows:
+        by_week[int(row["week"])].append(row)
+    weeks = sorted(by_week)
+    ticks = sorted({weeks[0], weeks[-1], *range(8, weeks[-1] + 1, 8)})
+    panel, sx, sy = line_panel(70, 140, 700, 190, [], ticks, 100, 20, "Runs flagged as drift")
+    repeats = len({row["repeat"] for row in rows})
+    body = [
+        text(24, 30, "A simulated year of weekly check-ups", cls="ink", size=15, weight=500),
+        text(24, 50, f"{repeats} seeded repeats; planted incidents, not real users", size=12),
+        *panel,
+        *_timeline_bars(by_week, sx, sy),
+        *_incident_markers(rows, sx, sy(0)),
+        text(420, 363, "Week", cls="mute", size=12, anchor="middle"),
+        *_proposal_markers(by_week, sx),
+        *legend(
+            24, 450, [("s1", "Drift flagged"), ("s3", "Proposal kept"), ("s2", "Proposal rejected")]
+        ),
+        text(
+            24,
+            474,
+            "Diamonds: incidents. Proposal labels: share of repeats. "
+            "New prompt hashes have no baseline.",
+            cls="mute",
+            size=11,
+        ),
+    ]
+    return svg(840, 490, "Weekly drift flags and proposal outcomes across a simulated year", body)
+
+
 if __name__ == "__main__":
     for name, chart in (
         ("false_positive.svg", false_positive_chart()),
         ("power.svg", power_chart()),
         ("naive_vs_paired.svg", naive_vs_paired_chart()),
+        ("checkup_timeline.svg", checkup_timeline_chart()),
     ):
         (RESULTS / name).write_text(chart + "\n")
         print(f"wrote {RESULTS / name}")
