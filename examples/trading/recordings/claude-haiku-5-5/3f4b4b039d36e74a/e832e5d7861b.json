@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": -0.3044, \"reason\": \"The 5-day return is -1.52%, which is negative, so the trend-following policy calls for a short. The position size is the absolute 5-day return divided by 0.05, which is 0.0152/0.05 = 0.3044, below the cap of 1. The price has fallen steadily over 20 days (-9.9%), which supports the trend signal.\"}\n```"}

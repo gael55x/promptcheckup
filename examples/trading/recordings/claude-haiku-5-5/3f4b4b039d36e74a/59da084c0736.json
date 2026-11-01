@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": 0.5009, \"reason\": \"The 5-day return is +2.50%, which is positive, so the trend-following rule calls for a long position. Position size is min(1, |0.025046| / 0.05) = 0.5009, so the position is about half of full long exposure. The return checks out against the displayed closes: 112.464 / 109.716 - 1 \u2248 0.02505.\"}\n```"}

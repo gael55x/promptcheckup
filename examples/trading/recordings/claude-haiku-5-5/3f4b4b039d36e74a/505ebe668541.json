@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.148655, \"reason\": \"The 5-day return is -0.00743, which is negative, so the trend-following rule calls for a short. Sizing is the absolute 5-day return divided by 0.05, which gives 0.148655, below the cap of 1. The last close of 77.719 versus 78.301 five sessions earlier confirms the negative 5-day move.\"}"}

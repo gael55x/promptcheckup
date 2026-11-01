@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.6129, \"reason\": \"The 5-day return is -3.06%, which is negative, so the trend-following rule calls for a short. Position size is the smaller of 1 and |return_5d| / 0.05 = 0.0306 / 0.05 = 0.6129, so the short is about 61% of maximum. The 5-day return matches the displayed closes (108.502 vs. 111.933 five sessions earlier).\"}"}

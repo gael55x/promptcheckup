@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 1.0, \"reason\": \"The 5-day return is +0.0646, which is positive, so the trend rule calls for a long position. The size is min(1, 0.0646 / 0.05) = min(1, 1.29) = 1, so the position is capped at full long. The stated 5-day return matches the displayed closes (83.461 vs. 78.393 five sessions earlier).\"}"}

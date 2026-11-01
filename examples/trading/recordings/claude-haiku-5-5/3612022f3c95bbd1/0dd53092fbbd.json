@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.5, \"reason\": \"The 5-day return is +6.21%, so the trend signal is long. Size is min(1, 0.0621/0.05) = 1. The 20-day volatility is 1.80%, below the 2% limit, and the last day rose 1.90%, so neither flat rule applies. The worst daily drop in the window is -3.42%, which is at least 3%, so the position is halved from 1 to 0.5.\"}"}

@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.4295, \"reason\": \"The 5-day return is +2.15%, so the trend is long. Size is min(1, 0.02148/0.05) = 0.4295. Stay-flat checks pass: 20-day volatility is 0.76%, below 2%, and the last day's return is +0.19%, not a drop of more than 4%. The halving rule does not apply because the worst daily drop in the window is -1.19%, short of 3%.\"}"}

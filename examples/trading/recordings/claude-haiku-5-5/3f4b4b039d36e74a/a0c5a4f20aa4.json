@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.3916, \"reason\": \"The 5-day return is +0.01958, which is positive, so the trend rule calls for a long position. Sizing is min(1, |0.01958| / 0.05) = 0.3916, so the position is about 39% long. The last day's dip of -0.24% does not change the signal because the policy uses the 5-day return.\"}"}

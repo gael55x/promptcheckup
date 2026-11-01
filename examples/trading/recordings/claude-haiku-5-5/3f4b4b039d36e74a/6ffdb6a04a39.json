@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.6738, \"reason\": \"The 5-day return is +3.37% (0.033692), which is positive, so the trend rule gives a long signal. Position size is min(1, 0.033692 / 0.05) = min(1, 0.6738) = 0.6738. The 20-day return is negative, but the policy uses only the 5-day return, so it does not change the decision.\"}"}

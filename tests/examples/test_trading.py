@@ -359,10 +359,10 @@ def test_trading_recorded_gate_is_repeatable_and_keeps_skew_guard(trading, monke
     assert all(math.isfinite(value) for _, value in result.scores.per_case)
 
 
-def test_trading_policies_are_short_and_results_are_not_invented():
+def test_trading_policies_are_short():
+    # The published results are pinned to the recordings in test_trading_results.py.
     for name in ("old-policy.md", "policy.md"):
         assert len((EXAMPLE / "prompts" / name).read_text().split()) < 120
-    assert "<!-- results: filled in after recording -->" in (EXAMPLE / "README.md").read_text()
 
 
 def test_trading_recordings_are_kept_per_model(trading, monkeypatch, tmp_path):

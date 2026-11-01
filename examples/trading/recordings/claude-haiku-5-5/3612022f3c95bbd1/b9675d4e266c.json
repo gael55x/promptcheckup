@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0, \"reason\": \"The 5-day return is -9.9%, which would signal a short of size 1 (capped at 1 since 0.099/0.05 > 1). However, 20-day daily volatility is 4.1%, above the 2% threshold, so the policy requires staying flat.\"}"}

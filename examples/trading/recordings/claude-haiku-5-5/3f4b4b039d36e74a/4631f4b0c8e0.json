@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": 1, \"reason\": \"The 5-day return is +8.84% (136.579 vs. 125.483 five sessions earlier), so the trend rule gives a long signal. Position size is min(1, 0.08843 / 0.05) = min(1, 1.769) = 1, so the position is capped at full long. The last day's dip of -0.89% does not change the 5-day signal under this policy.\"}\n```"}

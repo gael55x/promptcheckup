@@ -54,8 +54,8 @@ python -m pip install -e .
 cd examples/trading
 ```
 
-**Recordings are not included yet.** Once both policies have recordings, run with
-no key and with `TRADER_RECORD` unset:
+Recordings for Claude Haiku 5.5 are included, so this runs with no key. Leave
+`TRADER_RECORD` unset:
 
 ```bash
 promptcheckup gate --old prompts/old-policy.md --new prompts/policy.md
@@ -105,10 +105,30 @@ before recording that case again; damaged files never silently trigger a call.
 
 ## Results
 
-<!-- results: filled in after recording -->
+Recorded with Claude Haiku 5.5: 120 calls, one per policy and case. See the
+[full report](results/report-claude-haiku-5-5.md).
 
-No hosted-model verdict is claimed yet. Tests use function stubs; they check the
-wiring and arithmetic, not a model's policy-following or profitability.
+| Check | Result |
+| --- | --- |
+| Gate on the 60 recorded cases | **Not sure yet.** Mean +15.35 bp per case, 95% CI -10.64 to +41.34. B won 21, lost 11, tied 28. |
+| Did the model follow each policy? | A: 60 of 60, B: 60 of 60 recorded positions match the policy written as code. |
+| Both policies as code, on all 2085 ticker-days | **Not sure yet.** Mean +1.37 bp, 95% CI -2.61 to +5.36. |
+
+On the sample, B looked better: almost twice as many wins as losses, and +15 bp
+a case. Applied to every day of this market, its edge is about +1 bp and can't be
+told apart from zero. The sample was lucky; its seed was chosen to include a crash.
+A win count would have picked B. The gate did not: it said "not sure yet", which
+was right. Crashes in this market arrive at random, so "stay flat after a drop" has
+nothing to predict. A market whose crashes cluster could reward the rule.
+
+The model followed both policies exactly, so the verdict reflects the policies, not
+model noise. Reproduce both checks without a key:
+
+```bash
+python check_policies.py
+```
+
+Tests pin every number in this table to the committed recordings and code.
 
 ## What this shows
 

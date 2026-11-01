@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.3475, \"reason\": \"The 5-day return is -1.74%, which is negative, so the trend-following rule gives a short signal. Size is min(1, |-0.017375| / 0.05) = 0.3475, so the position is -0.3475. The 20-day return (-10.6%) confirms the downtrend, and the 5-day return matches the last close (72.636519) against the close five days earlier (73.920897).\"}"}

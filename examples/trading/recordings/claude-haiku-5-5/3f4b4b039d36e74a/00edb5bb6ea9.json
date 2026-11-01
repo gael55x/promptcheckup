@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": 0.3629, \"reason\": \"The 5-day return is +1.81% (0.018145), which is positive, so the trend-following rule calls for a long position. Sizing is min(1, |return_5d| / 0.05) = min(1, 0.36289), giving a position of about 0.3629. This is confirmed by the last 5 closes, which show a rise from 59.924 to 61.011.\"}\n```"}

@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": 0.4295, \"reason\": \"The 5-day return is +0.021477, which is positive, so the trend-following rule goes long. Position size is min(1, 0.021477 / 0.05) = 0.4295. The 20-day return is also positive (+0.0217), which supports the signal, and the last day's return was small and positive.\"}\n```"}

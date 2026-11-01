@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.3449, \"reason\": \"The 5-day return is +1.72%, so the trend is long. Position size is min(1, 0.01725/0.05) = 0.3449. Volatility over 20 days is 0.90%, below the 2% limit. The last day rose 0.18%, so the 4% drop rule does not trigger. The worst daily return in the window is -2.23%, which is above the -3% threshold, so the position is not halved.\"}"}
