@@ -3,15 +3,32 @@
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any, Literal
 
 from promptcheckup.data import Case
+from promptcheckup.errors import errors_as
 from promptcheckup.llm.client import LLMError
-from promptcheckup.llm.prompting import data_block, json_reply
+from promptcheckup.llm.prompting import data_block, nonempty_text, validated_reply
 from promptcheckup.runner import Replay
 from promptcheckup.stats import Verdict, decide
 
 Preference = Literal["first", "second", "tie"]
+
+COMPARISON_SCHEMA = MappingProxyType(
+    {
+        "winner": lambda value: isinstance(value, str) and value in ("1", "2", "tie"),
+        "reason": nonempty_text,
+    }
+)
+PREFERENCES = MappingProxyType({"1": "first", "2": "second", "tie": "tie"})
+PAIR_SCORES = MappingProxyType(
+    {
+        ("second", "first"): (1, True),
+        ("first", "second"): (-1, True),
+        ("tie", "tie"): (0, True),
+    }
+)
 
 
 def compare(
@@ -28,17 +45,9 @@ def compare(
         'Return ONLY a JSON object {"winner": "1" | "2" | "tie", "reason": "<one sentence>"}.'
     )
     reply = llm(prompt)
-    try:
-        result = json_reply(reply)
-        if set(result) != {"winner", "reason"}:
-            raise ValueError
-        if not isinstance(result["winner"], str) or result["winner"] not in ("1", "2", "tie"):
-            raise ValueError
-        if not isinstance(result["reason"], str) or not result["reason"].strip():
-            raise ValueError
-    except ValueError:
-        raise LLMError(f"invalid comparison response: {reply[:200]!r}") from None
-    return {"1": "first", "2": "second", "tie": "tie"}[result["winner"]]
+    with errors_as(LLMError, {ValueError: f"invalid comparison response: {reply[:200]!r}"}):
+        result = validated_reply(reply, COMPARISON_SCHEMA)
+    return PREFERENCES[result["winner"]]
 
 
 @dataclass(frozen=True)
@@ -64,11 +73,7 @@ def judge_pairs(
         case_id, sample, case_input, a, b = item
         forward = compare(llm, case_input, a, b, criteria)
         backward = compare(llm, case_input, b, a, criteria)
-        score, consistent = {
-            ("second", "first"): (1, True),
-            ("first", "second"): (-1, True),
-            ("tie", "tie"): (0, True),
-        }.get((forward, backward), (0, False))
+        score, consistent = PAIR_SCORES.get((forward, backward), (0, False))
         return Comparison(case_id, sample, forward, backward, score, consistent)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -118,6 +123,11 @@ def self_check(
     max_workers: int = 4,
 ) -> SelfCheck:
     """Check order consistency and preference between samples 0 and 1 of prompt A."""
+    items = _self_check_pairs(cases, replay)
+    return _check_pairs(llm, items, criteria, min_consistency, max_workers)
+
+
+def _self_check_pairs(cases: Sequence[Case], replay: Replay) -> list[tuple]:
     runs = {(run.case_id, run.sample): run for run in replay.runs if run.prompt_set == "A"}
     items = []
     for case in cases:
@@ -125,12 +135,19 @@ def self_check(
         if a is None or b is None or a.error is not None or b.error is not None:
             continue
         items.append((case.id, 0, case.input, a.output, b.output))
+    return items
+
+
+def _check_pairs(llm, items, criteria, min_consistency, max_workers) -> SelfCheck:
     if not items:
         return SelfCheck(False, 0.0, None, "need at least 2 samples of prompt A without errors")
-
     comparisons = judge_pairs(llm, items, criteria, max_workers=max_workers)
     consistency = sum(comparison.consistent for comparison in comparisons) / len(comparisons)
     verdict = decide(paired_scores(comparisons), skew_guard=False)
+    return _self_check_result(consistency, verdict, min_consistency)
+
+
+def _self_check_result(consistency: float, verdict: Verdict, min_consistency: float) -> SelfCheck:
     if verdict.ci_low is None:
         # Too few cases to test for bias; never report an unchecked judge as reliable.
         return SelfCheck(False, consistency, verdict, f"cannot check the judge: {verdict.reason}")
