@@ -88,6 +88,27 @@ Modules are grouped into subpackages by concern. Each subpackage re-exports its 
 - Dependencies point one way, down this table: `stats` imports nothing from the project; `cli` may import everything.
 - Tests mirror the layout: `tests/<subpackage>/test_<module>.py`. Each example has its own folder with a README and a test under `tests/examples/`.
 
+### Code style (functional, declarative, modular)
+
+These rules hold for every module. CI enforces the first one.
+
+1. **Small functions, one job each.** McCabe complexity is at most 5 (ruff `C901`, checked in CI, no waivers). Split anything bigger into named steps.
+2. **Orchestrators read as pipelines.** A function that coordinates work is a short top-to-bottom sequence of named steps. It holds no parsing, validation or branching detail of its own.
+3. **Data over control flow.** Validation rules, dispatch and mappings live in tables (dicts and tuples) at module level. No `if`/`elif` chains over types or strings.
+4. **Errors are handled in exactly two ways, both from `promptcheckup.errors`:**
+   - **`errors_as(ErrorType, {ExceptionType: message})`** translates an exception into our own error, once, at the boundary. A message is a fixed string or a function of the original exception; it is never treated as a template.
+   - **`fallback(operation, on_error, *exceptions)`** turns a failure into data when that is the point. Examples: an errored run, a failed HTTP reply that will be retried, or a cache miss.
+   - The only failures that may be *ignored* are:
+     - a recording failure, which becomes a warning so production is never broken;
+     - a damaged cache entry, which is re-run.
+   - There are no `try` blocks anywhere else in `src/`.
+5. **Pure core, I/O at the edges.** Computation takes values and returns values. Reading, writing, network and subprocess calls sit in small edge functions. There is no mutable module-level state; constants are `UPPER_CASE` at the top.
+6. **Classes only for data or real state.** Frozen dataclasses for values; a class only when it owns state, such as `Cache` or `LLM`.
+7. **One protocol, no `isinstance` dispatch on our own types.** For example, every agent has the same shape: `(case_input, prompts, timeout_s) -> output`.
+8. **Names say what you get.** Verbs for actions (`load_cases`, `replay`), nouns for values (`paired_scores`).
+
+`runner/agents.py` is the reference module for this style.
+
 | Subpackage | Module | Responsibility |
 |---|---|---|
 | `stats/` | `gate.py` | Pure function: paired per-case differences in, `Verdict` out (**built**) |
