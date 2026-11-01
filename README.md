@@ -46,11 +46,14 @@ pip install promptcheckup
 
 ```bash
 promptcheckup init      # writes promptcheckup.toml, example cases and two GitHub workflows
-promptcheckup doctor    # checks the wiring: config, prompts, cases, agent, scoring, judge, budget
-promptcheckup gate --old-ref origin/main --out report.md
 ```
 
-Point `promptcheckup.toml` at your agent: a Python function `run(case, prompts)` or any command that reads JSON on stdin. Then point it at your prompt files and your cases. The [Connect your agent](https://github.com/gael55x/promptcheckup/blob/main/docs/connect-your-agent.md) guide has copy-paste adapters for plain Python, the OpenAI and Anthropic SDKs, and Node.js.
+Edit `promptcheckup.toml` to point at your agent (a Python function `run(case, prompts)`, or any command that reads JSON on stdin), your prompt files and your cases. The [Connect your agent](https://github.com/gael55x/promptcheckup/blob/main/docs/connect-your-agent.md) guide has copy-paste adapters for plain Python, the OpenAI and Anthropic SDKs, and Node.js. Then check the wiring and gate your first change:
+
+```bash
+promptcheckup doctor    # config, prompts, cases, agent, scoring, judge and budget, one line each
+promptcheckup gate --old-ref origin/main --out report.md
+```
 
 The gate prints the planned calls and asks before spending anything (`--yes` skips the question in CI). The report's first line is the verdict:
 
