@@ -1,0 +1,29 @@
+[agent]
+entry = "bot.agent:run"
+description = "Answers SaaS billing questions with fixed answers selected by the supplied prompt"
+example_input = { question = "Can I get a refund on my annual plan?" }
+timeout_s = 10
+
+[prompts]
+files = ["prompts/system.md"]
+
+[cases]
+paths = ["cases/recorded.jsonl"]
+
+[scoring]
+mode = "judge"
+criteria = "The answer is correct for a SaaS billing team, and it cites the specific policy that applies, so the customer knows exactly what to expect."
+
+[llm]
+base_url = "https://api.anthropic.com/v1"
+model = "claude-haiku-5-5"
+api_key_env = "ANTHROPIC_API_KEY"
+# Alternative: replace the three lines above for an OpenAI key.
+# base_url = "https://api.openai.com/v1"
+# model = "gpt-5-mini"
+# api_key_env = "OPENAI_API_KEY"
+
+[run]
+samples = 2
+min_pairs = 20
+max_calls = 320

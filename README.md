@@ -80,6 +80,8 @@ mean change +0.067, 95% CI [+0.052, +0.082]
 
 To see paired replay beat a naive comparison, run the [planted example](examples/planted/). It needs no API key.
 
+Try the [support-bot judge quickstart](examples/support-bot/) or the [trading score example](examples/trading/) (recordings required).
+
 ## Gate a prompt change on your agent
 
 See [Connect your agent](docs/connect-your-agent.md) for runnable adapters, then run `promptcheckup doctor` to check the wiring.
@@ -155,7 +157,8 @@ python benchmarks/charts.py                              # renders the SVG chart
 | `promptcheckup init` and `gate` CLI, pull-request workflow template | **Done** |
 | Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | **Done** |
 | `promptcheckup doctor` and a guide for connecting your agent | **Done** |
-| Trading-agent and support-bot examples; validation on real agents | Planned |
+| Trading-agent and support-bot examples | **Done** |
+| Validation on real agents over several weeks of check-ups | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).
 
