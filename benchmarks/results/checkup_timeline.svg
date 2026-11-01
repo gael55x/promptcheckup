@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 490" width="840" height="490" role="img" aria-label="Weekly drift flags and proposal outcomes across a simulated year">
+<title>Weekly drift flags and proposal outcomes across a simulated year</title>
+<style>
+  svg { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .bg { fill: #fcfcfb; } .ink { fill: #0b0b0b; } .ink2 { fill: #52514e; } .mute { fill: #898781; }
+  .grid { stroke: #e1e0d9; } .axis { stroke: #c3c2b7; } .ref { stroke: #898781; }
+  .s1 { stroke: #2a78d6; fill: #2a78d6; } .s2 { stroke: #eb6834; fill: #eb6834; }
+  .s3 { stroke: #1baf7a; fill: #1baf7a; }
+  .o1 { stroke: #86b6ef; fill: #86b6ef; } .o2 { stroke: #2a78d6; fill: #2a78d6; }
+  .o3 { stroke: #104281; fill: #104281; } .ring { stroke: #fcfcfb; }
+  @media (prefers-color-scheme: dark) {
+    .bg { fill: #1a1a19; } .ink { fill: #f0efec; } .ink2 { fill: #c3c2b7; }
+    .grid { stroke: #2c2c2a; } .axis { stroke: #383835; }
+    .s1 { stroke: #3987e5; fill: #3987e5; } .s2 { stroke: #d95926; fill: #d95926; }
+    .s3 { stroke: #199e70; fill: #199e70; }
+    .o1 { stroke: #184f95; fill: #184f95; } .o2 { stroke: #3987e5; fill: #3987e5; }
+    .o3 { stroke: #9ec5f4; fill: #9ec5f4; } .ring { stroke: #1a1a19; }
+  }
+</style>
+<rect class="bg" width="840" height="490" rx="8"/>
+<text class="ink" x="24.0" y="30.0" font-size="15" text-anchor="start" font-weight="500">A simulated year of weekly check-ups</text>
+<text class="ink2" x="24.0" y="50.0" font-size="12" text-anchor="start" font-weight="400">200 seeded repeats; planted incidents, not real users</text>
+<text class="ink" x="70.0" y="128.0" font-size="13" text-anchor="start" font-weight="500">Runs flagged as drift</text>
+<line class="grid" x1="70" x2="770" y1="330.0" y2="330.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="334.0" font-size="11" text-anchor="end" font-weight="400">0%</text>
+<line class="grid" x1="70" x2="770" y1="292.0" y2="292.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="296.0" font-size="11" text-anchor="end" font-weight="400">20%</text>
+<line class="grid" x1="70" x2="770" y1="254.0" y2="254.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="258.0" font-size="11" text-anchor="end" font-weight="400">40%</text>
+<line class="grid" x1="70" x2="770" y1="216.0" y2="216.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="220.0" font-size="11" text-anchor="end" font-weight="400">60%</text>
+<line class="grid" x1="70" x2="770" y1="178.0" y2="178.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="182.0" font-size="11" text-anchor="end" font-weight="400">80%</text>
+<line class="grid" x1="70" x2="770" y1="140.0" y2="140.0" stroke-width="1"/>
+<text class="mute" x="62.0" y="144.0" font-size="11" text-anchor="end" font-weight="400">100%</text>
+<line class="axis" x1="70" x2="770" y1="330" y2="330" stroke-width="1"/>
+<text class="mute" x="70.0" y="346.0" font-size="11" text-anchor="middle" font-weight="400">1</text>
+<text class="mute" x="166.1" y="346.0" font-size="11" text-anchor="middle" font-weight="400">8</text>
+<text class="mute" x="275.9" y="346.0" font-size="11" text-anchor="middle" font-weight="400">16</text>
+<text class="mute" x="385.7" y="346.0" font-size="11" text-anchor="middle" font-weight="400">24</text>
+<text class="mute" x="495.5" y="346.0" font-size="11" text-anchor="middle" font-weight="400">32</text>
+<text class="mute" x="605.3" y="346.0" font-size="11" text-anchor="middle" font-weight="400">40</text>
+<text class="mute" x="715.1" y="346.0" font-size="11" text-anchor="middle" font-weight="400">48</text>
+<text class="mute" x="770.0" y="346.0" font-size="11" text-anchor="middle" font-weight="400">52</text>
+<rect class="s1" x="66.0" y="330.0" width="8" height="0.0"><title>Week 1: 0.0% flagged drift</title></rect>
+<rect class="s1" x="79.7" y="325.2" width="8" height="4.8"><title>Week 2: 2.5% flagged drift</title></rect>
+<rect class="s1" x="93.5" y="325.2" width="8" height="4.8"><title>Week 3: 2.5% flagged drift</title></rect>
+<rect class="s1" x="107.2" y="322.4" width="8" height="7.6"><title>Week 4: 4.0% flagged drift</title></rect>
+<rect class="s1" x="120.9" y="323.4" width="8" height="6.6"><title>Week 5: 3.5% flagged drift</title></rect>
+<rect class="s1" x="134.6" y="327.1" width="8" height="2.9"><title>Week 6: 1.5% flagged drift</title></rect>
+<rect class="s1" x="148.4" y="327.1" width="8" height="2.9"><title>Week 7: 1.5% flagged drift</title></rect>
+<rect class="s1" x="162.1" y="163.8" width="8" height="166.2"><title>Week 8: 87.5% flagged drift</title></rect>
+<rect class="s1" x="175.8" y="327.1" width="8" height="2.9"><title>Week 9: 1.5% flagged drift</title></rect>
+<rect class="s1" x="189.5" y="324.3" width="8" height="5.7"><title>Week 10: 3.0% flagged drift</title></rect>
+<rect class="s1" x="203.3" y="324.3" width="8" height="5.7"><title>Week 11: 3.0% flagged drift</title></rect>
+<rect class="s1" x="217.0" y="324.3" width="8" height="5.7"><title>Week 12: 3.0% flagged drift</title></rect>
+<rect class="s1" x="230.7" y="327.1" width="8" height="2.9"><title>Week 13: 1.5% flagged drift</title></rect>
+<rect class="s1" x="244.4" y="328.1" width="8" height="1.9"><title>Week 14: 1.0% flagged drift</title></rect>
+<rect class="s1" x="258.2" y="322.4" width="8" height="7.6"><title>Week 15: 4.0% flagged drift</title></rect>
+<rect class="s1" x="271.9" y="326.2" width="8" height="3.8"><title>Week 16: 2.0% flagged drift</title></rect>
+<rect class="s1" x="285.6" y="323.4" width="8" height="6.6"><title>Week 17: 3.5% flagged drift</title></rect>
+<rect class="s1" x="299.3" y="327.1" width="8" height="2.9"><title>Week 18: 1.5% flagged drift</title></rect>
+<rect class="s1" x="313.1" y="329.1" width="8" height="0.9"><title>Week 19: 0.5% flagged drift</title></rect>
+<rect class="s1" x="326.8" y="326.2" width="8" height="3.8"><title>Week 20: 2.0% flagged drift</title></rect>
+<rect class="s1" x="340.5" y="323.4" width="8" height="6.6"><title>Week 21: 3.5% flagged drift</title></rect>
+<rect class="s1" x="354.2" y="326.2" width="8" height="3.8"><title>Week 22: 2.0% flagged drift</title></rect>
+<rect class="s1" x="368.0" y="324.3" width="8" height="5.7"><title>Week 23: 3.0% flagged drift</title></rect>
+<rect class="s1" x="381.7" y="325.2" width="8" height="4.8"><title>Week 24: 2.5% flagged drift</title></rect>
+<rect class="s1" x="395.4" y="330.0" width="8" height="0.0"><title>Week 25: 0.0% flagged drift</title></rect>
+<rect class="s1" x="409.1" y="321.4" width="8" height="8.6"><title>Week 26: 4.5% flagged drift</title></rect>
+<rect class="s1" x="422.9" y="326.2" width="8" height="3.8"><title>Week 27: 2.0% flagged drift</title></rect>
+<rect class="s1" x="436.6" y="327.1" width="8" height="2.9"><title>Week 28: 1.5% flagged drift</title></rect>
+<rect class="s1" x="450.3" y="325.2" width="8" height="4.8"><title>Week 29: 2.5% flagged drift</title></rect>
+<rect class="s1" x="464.0" y="328.1" width="8" height="1.9"><title>Week 30: 1.0% flagged drift</title></rect>
+<rect class="s1" x="477.8" y="322.4" width="8" height="7.6"><title>Week 31: 4.0% flagged drift</title></rect>
+<rect class="s1" x="491.5" y="324.3" width="8" height="5.7"><title>Week 32: 3.0% flagged drift</title></rect>
+<rect class="s1" x="505.2" y="322.4" width="8" height="7.6"><title>Week 33: 4.0% flagged drift</title></rect>
+<rect class="s1" x="518.9" y="326.2" width="8" height="3.8"><title>Week 34: 2.0% flagged drift</title></rect>
+<rect class="s1" x="532.7" y="327.1" width="8" height="2.9"><title>Week 35: 1.5% flagged drift</title></rect>
+<rect class="s1" x="546.4" y="325.2" width="8" height="4.8"><title>Week 36: 2.5% flagged drift</title></rect>
+<rect class="s1" x="560.1" y="326.2" width="8" height="3.8"><title>Week 37: 2.0% flagged drift</title></rect>
+<rect class="s1" x="573.8" y="326.2" width="8" height="3.8"><title>Week 38: 2.0% flagged drift</title></rect>
+<rect class="s1" x="587.6" y="325.2" width="8" height="4.8"><title>Week 39: 2.5% flagged drift</title></rect>
+<rect class="s1" x="601.3" y="330.0" width="8" height="0.0"><title>Week 40: 0.0% flagged drift</title></rect>
+<rect class="s1" x="615.0" y="328.1" width="8" height="1.9"><title>Week 41: 1.0% flagged drift</title></rect>
+<rect class="s1" x="628.7" y="325.2" width="8" height="4.8"><title>Week 42: 2.5% flagged drift</title></rect>
+<rect class="s1" x="642.5" y="323.4" width="8" height="6.6"><title>Week 43: 3.5% flagged drift</title></rect>
+<rect class="s1" x="656.2" y="327.1" width="8" height="2.9"><title>Week 44: 1.5% flagged drift</title></rect>
+<rect class="s1" x="669.9" y="324.3" width="8" height="5.7"><title>Week 45: 3.0% flagged drift</title></rect>
+<rect class="s1" x="683.6" y="324.3" width="8" height="5.7"><title>Week 46: 3.0% flagged drift</title></rect>
+<rect class="s1" x="697.4" y="328.1" width="8" height="1.9"><title>Week 47: 1.0% flagged drift</title></rect>
+<rect class="s1" x="711.1" y="328.1" width="8" height="1.9"><title>Week 48: 1.0% flagged drift</title></rect>
+<rect class="s1" x="724.8" y="327.1" width="8" height="2.9"><title>Week 49: 1.5% flagged drift</title></rect>
+<rect class="s1" x="738.5" y="327.1" width="8" height="2.9"><title>Week 50: 1.5% flagged drift</title></rect>
+<rect class="s1" x="752.3" y="325.2" width="8" height="4.8"><title>Week 51: 2.5% flagged drift</title></rect>
+<rect class="s1" x="766.0" y="320.5" width="8" height="9.5"><title>Week 52: 5.0% flagged drift</title></rect>
+<g id="incident-harmful_provider"><title>Week 8: Harmful provider change</title>
+<text class="ink" x="166.1" y="80.0" font-size="11" text-anchor="middle" font-weight="500">Harmful</text>
+<text class="ink2" x="166.1" y="95.0" font-size="11" text-anchor="middle" font-weight="400">provider change</text>
+<line class="ref" x1="166.1" x2="166.1" y1="140" y2="330.0" stroke-width="1" stroke-dasharray="3 4"/>
+<path class="ink" d="M166.1,103 l4,5 l-4,5 l-4,-5 Z"/>
+</g>
+<g id="incident-harmless_provider"><title>Week 16: Harmless provider change</title>
+<text class="ink" x="275.9" y="80.0" font-size="11" text-anchor="middle" font-weight="500">Harmless</text>
+<text class="ink2" x="275.9" y="95.0" font-size="11" text-anchor="middle" font-weight="400">provider change</text>
+<line class="ref" x1="275.9" x2="275.9" y1="140" y2="330.0" stroke-width="1" stroke-dasharray="3 4"/>
+<path class="ink" d="M275.9,103 l4,5 l-4,5 l-4,-5 Z"/>
+</g>
+<g id="incident-real_fix"><title>Week 24: Real fix proposed</title>
+<text class="ink" x="385.7" y="80.0" font-size="11" text-anchor="middle" font-weight="500">Real fix</text>
+<text class="ink2" x="385.7" y="95.0" font-size="11" text-anchor="middle" font-weight="400">proposed</text>
+<line class="ref" x1="385.7" x2="385.7" y1="140" y2="330.0" stroke-width="1" stroke-dasharray="3 4"/>
+<path class="ink" d="M385.7,103 l4,5 l-4,5 l-4,-5 Z"/>
+</g>
+<g id="incident-useless_fix"><title>Week 32: Useless fix proposed</title>
+<text class="ink" x="495.5" y="80.0" font-size="11" text-anchor="middle" font-weight="500">Useless fix</text>
+<text class="ink2" x="495.5" y="95.0" font-size="11" text-anchor="middle" font-weight="400">proposed</text>
+<line class="ref" x1="495.5" x2="495.5" y1="140" y2="330.0" stroke-width="1" stroke-dasharray="3 4"/>
+<path class="ink" d="M495.5,103 l4,5 l-4,5 l-4,-5 Z"/>
+</g>
+<g id="incident-unreviewed_regression"><title>Week 40: Unreviewed prompt regression</title>
+<text class="ink" x="605.3" y="80.0" font-size="11" text-anchor="middle" font-weight="500">Unreviewed</text>
+<text class="ink2" x="605.3" y="95.0" font-size="11" text-anchor="middle" font-weight="400">prompt regression</text>
+<line class="ref" x1="605.3" x2="605.3" y1="140" y2="330.0" stroke-width="1" stroke-dasharray="3 4"/>
+<path class="ink" d="M605.3,103 l4,5 l-4,5 l-4,-5 Z"/>
+</g>
+<text class="mute" x="420.0" y="363.0" font-size="12" text-anchor="middle" font-weight="400">Week</text>
+<g id="proposal-kept">
+<circle class="s3" cx="385.7" cy="376" r="4"><title>Week 24: 92.5% kept</title></circle>
+<text class="ink2" x="385.7" y="392.0" font-size="11" text-anchor="middle" font-weight="400">92.5% kept</text>
+<circle class="s3" cx="495.5" cy="376" r="4"><title>Week 32: 5.0% kept</title></circle>
+<text class="ink2" x="495.5" y="392.0" font-size="11" text-anchor="middle" font-weight="400">5.0% kept</text>
+</g>
+<g id="proposal-rejected">
+<circle class="s2" cx="385.7" cy="407" r="4"><title>Week 24: 7.5% rejected</title></circle>
+<text class="ink2" x="385.7" y="423.0" font-size="11" text-anchor="middle" font-weight="400">7.5% rejected</text>
+<circle class="s2" cx="495.5" cy="407" r="4"><title>Week 32: 95.0% rejected</title></circle>
+<text class="ink2" x="495.5" y="423.0" font-size="11" text-anchor="middle" font-weight="400">95.0% rejected</text>
+</g>
+<line class="s1" x1="24" x2="42" y1="446" y2="446" stroke-width="2"/>
+<circle class="s1" cx="33" cy="446" r="4"/>
+<text class="ink2" x="48.0" y="450.0" font-size="12" text-anchor="start" font-weight="400">Drift flagged</text>
+<line class="s3" x1="159" x2="177" y1="446" y2="446" stroke-width="2"/>
+<circle class="s3" cx="168" cy="446" r="4"/>
+<text class="ink2" x="183.0" y="450.0" font-size="12" text-anchor="start" font-weight="400">Proposal kept</text>
+<line class="s2" x1="294" x2="312" y1="446" y2="446" stroke-width="2"/>
+<circle class="s2" cx="303" cy="446" r="4"/>
+<text class="ink2" x="318.0" y="450.0" font-size="12" text-anchor="start" font-weight="400">Proposal rejected</text>
+<text class="mute" x="24.0" y="474.0" font-size="11" text-anchor="start" font-weight="400">Diamonds: incidents. Proposal labels: share of repeats. New prompt hashes have no baseline.</text>
+</svg>

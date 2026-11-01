@@ -225,6 +225,17 @@ all sensitive fields in your own data, including free text. Set `run.redact` to 
 `module:function` as well when inputs or outputs need redaction before judge calls
 and reports. Doctor respects it for its preview and judge inputs.
 
+### Choosing cases
+
+Choose cases before looking at results. Prefer recorded production inputs or a fixed
+sampling rule. Never keep a sample because it makes a change look good: that is
+selection by outcome. For time-series agents such as trading or forecasting, each
+case must only see data available up to its decision time. Copy the pattern in the
+trading example's look-ahead tests: changing every price after the decision day must
+leave the agent's input byte-identical
+([`test_the_model_never_sees_a_price_after_the_decision_day`](../tests/examples/test_trading_results.py)
+checks all 2,085 decision days and fails when a single future close is planted).
+
 ## 5. Choose how answers are scored
 
 Use a score when correctness is computable. `score(case, output)` must handle any
