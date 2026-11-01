@@ -116,6 +116,19 @@ def test_negative_skew_blocks_better():
     assert "skew" in verdict.reason
 
 
+def test_small_losses_do_not_trigger_the_skew_guard():
+    # 19 of 20 cases improved and the one loss is tiny. The shape is negatively skewed,
+    # but no single loss is anywhere near the average gain, so nothing is hiding.
+    old = [0.62, 0.55, 0.71, 0.40, 0.58, 0.66, 0.49, 0.53, 0.60, 0.44]
+    old += [0.57, 0.68, 0.51, 0.47, 0.63, 0.59, 0.42, 0.65, 0.56, 0.50]
+    new = [0.70, 0.61, 0.74, 0.52, 0.57, 0.75, 0.58, 0.60, 0.69, 0.47]
+    new += [0.66, 0.71, 0.60, 0.55, 0.64, 0.68, 0.50, 0.73, 0.62, 0.58]
+
+    verdict = decide([b - a for a, b in zip(old, new, strict=True)])
+
+    assert verdict.decision == "better"
+
+
 def test_positive_skew_blocks_worse():
     diffs = [-0.6] * 18 + [1.0] * 2
 
