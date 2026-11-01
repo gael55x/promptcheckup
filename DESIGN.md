@@ -204,6 +204,7 @@ Correct, cites the relevant policy, never promises refunds the policy doesn't al
 base_url = "https://api.openai.com/v1"
 model = "gpt-5-mini"
 api_key_env = "OPENAI_API_KEY"
+# temperature = 0                 # optional; sent only if set (section 9)
 
 [run]
 samples = 2
