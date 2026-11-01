@@ -1,0 +1,25 @@
+[agent]
+entry = "anthropic_agent:run"
+description = "Answers questions through the Anthropic messages API"
+example_input = { question = "What is 2 + 2?" }
+timeout_s = 60
+
+[prompts]
+files = ["prompts/system.md"]
+
+[cases]
+paths = ["cases/*.jsonl"]
+
+[scoring]
+mode = "judge"
+criteria = "Answer the question accurately and directly. Do not invent facts."
+
+[llm]
+base_url = "https://api.anthropic.com/v1"
+model = "claude-haiku-5-5"
+api_key_env = "ANTHROPIC_API_KEY"
+
+[run]
+samples = 2
+min_pairs = 20
+max_calls = 400

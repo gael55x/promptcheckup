@@ -1,0 +1,20 @@
+[agent]
+entry = "plain_agent:run"
+description = "Greets a person using the supplied greeting prompt"
+example_input = { question = "Ada" }
+timeout_s = 1
+
+[prompts]
+files = ["prompts/system.md"]
+
+[cases]
+paths = ["cases/*.jsonl"]
+
+[scoring]
+mode = "score"
+score = "plain_agent:score"
+
+[run]
+samples = 2
+min_pairs = 20
+max_calls = 400
