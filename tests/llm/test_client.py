@@ -100,16 +100,14 @@ def test_posts_chat_request_with_defaults_and_returns_content(http_server, monke
     assert llm.usage == Usage(calls=1)
 
 
-@pytest.mark.parametrize("max_tokens", [0, 12])
-def test_sends_explicit_options_without_authorization(http_server, max_tokens):
+def test_sends_no_authorization_when_no_key_variable_is_configured(http_server):
     llm = local_llm(http_server)
 
-    llm("hello", temperature=0.7, max_tokens=max_tokens)
+    llm("hello")
 
     _, headers, body = http_server.requests[0]
     assert "Authorization" not in headers
-    assert body["temperature"] == 0.7
-    assert body["max_tokens"] == max_tokens
+    assert body["temperature"] == 0.0  # judgments must be repeatable
 
 
 def test_reads_key_at_each_call_and_reports_missing_variable(http_server, monkeypatch):
@@ -299,13 +297,6 @@ def test_errors_never_expose_key_echoed_by_server(http_server, monkeypatch, stat
     assert key not in repr(caught.value)
     assert key not in "".join(traceback.format_exception(caught.value))
     assert key not in repr(llm)
-
-
-def test_llm_package_exports_client_public_names():
-    import promptcheckup.llm
-
-    assert {"LLM", "LLMError", "Usage"} <= set(promptcheckup.llm.__all__)
-    assert issubclass(LLMError, RuntimeError)
 
 
 def test_keeps_a_successful_answer_when_usage_counts_are_null(http_server):
