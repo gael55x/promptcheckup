@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from promptcheckup import __version__
 from promptcheckup.checkup import evaluate, judge_mode, planned_calls, redacted_inputs, score_mode
+from promptcheckup.checkup.ledger import record_trial, trials
 from promptcheckup.checkup.report import gate_report
 from promptcheckup.cli.config import load_config
 from promptcheckup.cli.project import (
@@ -37,7 +38,17 @@ def gate(args) -> int:
         return 3
     result = _evaluate_project(config, cases, prompts_a, prompts_b)
     hashes = {"A": prompt_hash(prompts_a), "B": prompt_hash(prompts_b)}
-    _write_results(result, hashes, args)
+    ids = [case.id for case in cases]
+    record_trial(
+        config.root,
+        case_ids=ids,
+        prompt_a=hashes["A"],
+        prompt_b=hashes["B"],
+        decision=result.verdict.decision,
+        confidence=config.run.confidence,
+        command="gate",
+    )
+    _write_results(result, hashes, args, trials(config.root, ids), config.run.confidence)
     return EXIT_CODES[result.verdict.decision]
 
 
@@ -69,6 +80,7 @@ def _evaluate_project(config, cases, prompts_a, prompts_b):
             max_calls=config.run.max_calls,
             min_pairs=config.run.min_pairs,
             cache=cache,
+            confidence=config.run.confidence,
         )
 
 
@@ -90,8 +102,10 @@ def _judge_scorer(config, redact, cache):
     return redacted_inputs(judge_mode(llm, config.scoring.criteria, cache=cache), redact)
 
 
-def _write_results(result, hashes, args):
-    text = gate_report(result, prompt_hashes=hashes, version=__version__)
+def _write_results(result, hashes, args, count, confidence):
+    text = gate_report(
+        result, prompt_hashes=hashes, version=__version__, trial_count=count, confidence=confidence
+    )
     if args.out:
         args.out.write_text(text, encoding="utf-8")
     else:

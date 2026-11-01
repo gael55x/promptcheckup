@@ -4,12 +4,14 @@ import json
 import shlex
 import sys
 from contextlib import ExitStack, chdir, contextmanager
+from dataclasses import asdict
 from pathlib import Path
 
 from promptcheckup.cli.config import ConfigError
 from promptcheckup.cli.init import write_new
 from promptcheckup.data import CaseError, load_cases
 from promptcheckup.errors import errors_as, fallback
+from promptcheckup.llm import LLM
 from promptcheckup.runner import Cache, command_agent, load_function, python_agent
 
 
@@ -66,3 +68,36 @@ def confirm(yes: bool) -> bool:
     print("Proceed? [y/N] ", end="", file=sys.stderr, flush=True)
     answer = fallback(input, lambda error: "", EOFError)
     return answer.strip().lower() in ("y", "yes")
+
+
+def project_llm(config, *, commands="checkup and propose"):
+    if config.llm is None or not config.llm.base_url.strip() or not config.llm.model.strip():
+        raise ConfigError(f"llm.base_url and llm.model are required for {commands}")
+    return LLM(**asdict(config.llm))
+
+
+def proposal_settings(config):
+    """Common proposal pipeline settings; load inside project_context."""
+    score_fn = load_function(config.scoring.score) if config.scoring.mode == "score" else None
+    return dict(
+        directory=config.root,
+        score_fn=score_fn,
+        criteria=config.scoring.criteria,
+        samples=config.run.samples,
+        timeout_s=config.agent.timeout_s,
+        max_calls=config.run.max_calls,
+        min_pairs=config.run.min_pairs,
+        confidence=config.run.confidence,
+        cache=project_cache(config),
+        agent_version=config.run.agent_version,
+        description=config.agent.description,
+        example_input=config.agent.example_input,
+        redact=project_redactor(config),
+    )
+
+
+def write_prompts(config, originals, prompts):
+    """Write changed files after the calling command has verified acceptance."""
+    for name, text in prompts.items():
+        if text != originals[name]:
+            (config.root / name).write_text(text, encoding="utf-8")

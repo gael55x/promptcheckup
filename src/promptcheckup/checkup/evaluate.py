@@ -209,6 +209,7 @@ def evaluate(
     max_calls,
     min_pairs,
     cache,
+    confidence=0.95,
 ) -> Evaluation:
     """Evaluate paired evidence, preserving statistics even when a safeguard blocks it."""
     replayed = replay(
@@ -222,15 +223,23 @@ def evaluate(
         cache=cache,
     )
     return evaluate_replay(
-        cases, replayed, scorer, budget=max_calls - replayed.calls, min_pairs=min_pairs
+        cases,
+        replayed,
+        scorer,
+        budget=max_calls - replayed.calls,
+        min_pairs=min_pairs,
+        confidence=confidence,
     )
 
 
-def evaluate_replay(cases, replayed, scorer, *, budget, min_pairs) -> Evaluation:
+def evaluate_replay(cases, replayed, scorer, *, budget, min_pairs, confidence=0.95) -> Evaluation:
     """Score existing evidence using the same decision and downgrade rules as evaluate."""
     scores = scorer(cases, replayed, budget=budget, min_pairs=min_pairs)
     verdict = decide(
-        [value for _, value in scores.per_case], min_pairs=min_pairs, skew_guard=scores.skew_guard
+        [value for _, value in scores.per_case],
+        min_pairs=min_pairs,
+        skew_guard=scores.skew_guard,
+        confidence=confidence,
     )
     result = Evaluation(
         verdict,

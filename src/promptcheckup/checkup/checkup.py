@@ -21,6 +21,7 @@ from promptcheckup.checkup.evaluate import (
     score_mode,
 )
 from promptcheckup.checkup.failures import current_failures
+from promptcheckup.checkup.ledger import record_trial
 from promptcheckup.checkup.snapshot import load_snapshot, save_snapshot
 from promptcheckup.data import Case, append_cases
 from promptcheckup.errors import errors_as, fallback
@@ -48,6 +49,7 @@ class CheckupResult:
     model: str = ""
     drift_checked: bool = True
     snapshot_saved: bool = False
+    gated_proposal: Proposal | None = None  # audit evidence, never authorization to write files
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,9 @@ class _Plan:
     description: str = ""
     example_input: dict = field(default_factory=dict)
     redact: Callable[[Any], Any] | None = None
+    gate_cases: list[Case] | None = None
+    confidence: float = 0.95
+    trial_command: str | None = None  # CLI opts into durable recording immediately after gating
 
 
 @dataclass(frozen=True)
@@ -87,6 +92,8 @@ def checkup(agent, cases, prompts, llm, **settings) -> CheckupResult:
     Settings are the fields of `_Plan`: directory (project root), score_fn or criteria,
     samples, timeout_s, max_calls, min_pairs, cache, agent_version, description,
     example_input, redact, and optionally a scorer following evaluate's protocol.
+    gate_cases and confidence override only the proposal gate. trial_command opts
+    into recording each gate immediately, including rejected and budget-stopped gates.
     """
     plan = _plan(agent, prompts, llm, settings)
     return _run(plan, _start(plan, cases), CHECKUP_STEPS)
@@ -225,9 +232,10 @@ def _proposal(plan, state) -> _State:
 
 def _gate(plan, state, proposal) -> _State:
     # Replays current against proposed back-to-back; cached current outputs are free.
+    cases = state.cases if plan.gate_cases is None else plan.gate_cases
     result = evaluate(
         plan.agent,
-        state.cases,
+        cases,
         plan.prompts,
         proposal.prompts,
         plan.scorer,
@@ -236,16 +244,34 @@ def _gate(plan, state, proposal) -> _State:
         max_calls=_remaining(plan, state),
         min_pairs=plan.min_pairs,
         cache=plan.cache,
+        confidence=plan.confidence,
     )
-    proposed_errors = [run for run in result.errors if run.prompt_set == "B"]
+    _record_trial(plan, cases, proposal, result)
+    gate_errors = [
+        run for run in result.errors if plan.gate_cases is not None or run.prompt_set == "B"
+    ]
     state = _spend(
         state,
         result.replay.calls + result.scores.judge_calls,
         proposal_verdict=result.verdict,
+        gated_proposal=proposal,
         proposal=proposal if result.verdict.decision == "better" else None,
-        errors=[*state.result.errors, *proposed_errors],
+        errors=[*state.result.errors, *gate_errors],
     )
     return replace(state, stopped=result.budget_exhausted)
+
+
+def _record_trial(plan, cases, proposal, result):
+    if plan.trial_command is not None:
+        record_trial(
+            plan.directory,
+            case_ids=[case.id for case in cases],
+            prompt_a=prompt_hash(plan.prompts),
+            prompt_b=prompt_hash(proposal.prompts),
+            decision=result.verdict.decision,
+            confidence=plan.confidence,
+            command=plan.trial_command,
+        )
 
 
 CHECKUP_STEPS = (_starter, _current, _drift, _failures, _patterns, _proposal)

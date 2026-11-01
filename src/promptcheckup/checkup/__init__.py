@@ -12,10 +12,29 @@ from promptcheckup.checkup.evaluate import (
     redacted_inputs,
     score_mode,
 )
-from promptcheckup.checkup.report import checkup_report, gate_report, proposal_report
+from promptcheckup.checkup.evolve import (
+    EvolveResult,
+    Round,
+    evolution_cases,
+    evolve,
+    round_confidence,
+    split_cases,
+)
+from promptcheckup.checkup.ledger import false_better_expected, record_trial, trials
+from promptcheckup.checkup.report import checkup_report, evolve_report, gate_report, proposal_report
 from promptcheckup.checkup.snapshot import Snapshot, load_snapshot, save_snapshot
 
 __all__ = [
+    "EvolveResult",
+    "Round",
+    "evolution_cases",
+    "evolve",
+    "split_cases",
+    "round_confidence",
+    "evolve_report",
+    "record_trial",
+    "trials",
+    "false_better_expected",
     "CheckupResult",
     "Snapshot",
     "checkup",

@@ -500,7 +500,7 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Doctor and integration guide | `doctor`, "Connect your agent" guide with tested examples | Done | — |
 | Examples | Support-bot quickstart with real judge reports; trading example with recorded replies, a look-ahead test and outcome-blind cases | Done | LLM API key and budget (spent) |
 | Simulated year | 52 weekly check-ups with planted incidents, 200 repeats; detection, false alarms, proposal accuracy (section 14, item 5) | Done | — |
-| Evolve and trial ledger | `evolve` with held-out gating and per-round confidence; trial ledger; `run.confidence` (7.9–7.10) | Planned | — |
+| Evolve and trial ledger | `evolve` with held-out gating and per-round confidence; trial ledger; `run.confidence` (7.9–7.10) | Done | — |
 | Daily-workflow helpers | pytest helper for gating inside a test suite; look-ahead recipe for time-series agents | Planned | — |
 | Validation on real agents | Dogfood on LayeredMemoryTrader over real weeks | Later | 2+ weeks of real check-ups |
 | Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
