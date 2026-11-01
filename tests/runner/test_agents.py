@@ -4,7 +4,13 @@ from threading import Event
 
 import pytest
 
-from promptcheckup.runner import AgentError, call_agent, command_agent, python_agent
+from promptcheckup.runner import (
+    AgentError,
+    call_agent,
+    command_agent,
+    function_agent,
+    python_agent,
+)
 
 
 @pytest.fixture
@@ -64,7 +70,7 @@ def test_call_agent_preserves_json_output_and_passes_arguments(output):
         assert received_prompts is prompts
         return output
 
-    assert call_agent(agent, case_input, prompts, timeout_s=1) is output
+    assert call_agent(function_agent(agent), case_input, prompts, timeout_s=1) is output
 
 
 @pytest.mark.parametrize("error_type", [ValueError, TimeoutError, AgentError])
@@ -75,7 +81,7 @@ def test_call_agent_chains_python_exception_without_misreporting_timeout(error_t
         raise error
 
     with pytest.raises(AgentError, match="agent failed") as caught:
-        call_agent(agent, {}, {}, timeout_s=1)
+        call_agent(function_agent(agent), {}, {}, timeout_s=1)
 
     assert caught.value is not error
     assert caught.value.__cause__ is error
@@ -96,7 +102,7 @@ def test_call_agent_times_out_without_waiting_for_python_thread():
     before = time.monotonic()
     try:
         with pytest.raises(AgentError, match="timed out after 0.05s"):
-            call_agent(agent, {}, {}, timeout_s=0.05)
+            call_agent(function_agent(agent), {}, {}, timeout_s=0.05)
         assert time.monotonic() - before < 0.75
         assert started.is_set()
         assert not finished.is_set()
@@ -115,7 +121,7 @@ def test_call_agent_rejects_unserializable_output(kind):
         return output
 
     with pytest.raises(AgentError, match="JSON-serializable") as caught:
-        call_agent(agent, {}, {}, timeout_s=1)
+        call_agent(function_agent(agent), {}, {}, timeout_s=1)
 
     assert isinstance(caught.value.__cause__, (TypeError, ValueError))
 
@@ -135,13 +141,13 @@ def test_command_agent_receives_case_and_prompts_on_stdin(tmp_path):
     assert output == {"case": case_input, "prompts": prompts}
 
 
-def test_command_agent_accepts_timeout_keyword_and_passes_literal_argv(tmp_path):
+def test_command_agent_passes_literal_argv(tmp_path):
     script = tmp_path / "agent.py"
     script.write_text("import json, sys\nprint(json.dumps(sys.argv[1:]))\n", encoding="utf-8")
     argument = "; echo this must stay an argument"
     agent = command_agent([sys.executable, str(script), argument])
 
-    assert agent({}, {}, _timeout_s=1) == [argument]
+    assert agent({}, {}, 1) == [argument]
 
 
 def test_command_agent_reports_nonzero_exit_and_stderr_tail(tmp_path):
