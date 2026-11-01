@@ -34,7 +34,7 @@ jobs:
             promptcheckup-snapshots-${{ hashFiles('prompts/system.md', 'prompts/tools.md') }}-
             promptcheckup-snapshots-
       # Install your agent's dependencies and configure its LLM endpoint before enabling.
-      - run: python -m pip install git+https://github.com/gael55x/promptcheckup
+      - run: python -m pip install "promptcheckup>=1,<2"
       - name: Run the weekly check-up
         continue-on-error: true
         env:
