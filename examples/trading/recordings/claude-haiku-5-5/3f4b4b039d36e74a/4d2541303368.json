@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 1, \"reason\": \"The 5-day return is +0.111, which is positive, so the trend rule gives a long signal. The size is min(1, |0.111| / 0.05) = min(1, 2.22) = 1, so the position is capped at full long. This matches the displayed closes: 78.656 / 70.797 - 1 \u2248 0.111.\"}"}

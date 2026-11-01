@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.957033, \"reason\": \"The 5-day return is +0.04785, which is positive, so the trend-following policy goes long. Sizing is min(1, 0.04785 / 0.05) = 0.957033, so the position is slightly below full size.\"}"}

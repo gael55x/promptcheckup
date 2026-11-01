@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.4145, \"reason\": \"The 5-day return is +2.07% (0.020723), so the trend signal is long. Sizing uses min(1, |5-day return| / 0.05) = min(1, 0.4145) = 0.4145. The 5-day return checks out against the displayed closes (134.62 vs. 131.89 five sessions earlier).\"}"}

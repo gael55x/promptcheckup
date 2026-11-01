@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.0146, \"reason\": \"The 5-day return is -0.0007312, which is negative, so the trend rule calls for a short. The position size is min(1, |-0.0007312| / 0.05) = 0.0146, so the position is -0.0146. This matches the closes: 116.872 on the latest day versus 116.958 five days earlier is a return of about -0.0007.\"}"}

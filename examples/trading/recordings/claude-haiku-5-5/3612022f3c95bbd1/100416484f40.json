@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.2039, \"reason\": \"The 5-day return is -2.04%, so the trend is short. Sizing gives min(1, 0.0204/0.05) = 0.408 short. Volatility is 1.74%, below the 2% limit, and the last day fell 0.40%, not more than 4%, so the position is not forced flat. The 20-day window contains a daily drop of 6.97% (at least 3%), so the position is halved to -0.2039.\"}"}

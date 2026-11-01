@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.293, \"reason\": \"The 5-day return is -1.46%, which is negative, so the trend rule gives a short position. Sizing is the smaller of 1 and |5-day return| / 0.05 = 0.01465 / 0.05 = 0.293, so the position is -0.293. The closes confirm the return: 92.256832 / 93.628416 - 1 = -0.01465.\"}"}

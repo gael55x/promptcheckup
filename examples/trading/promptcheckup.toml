@@ -1,0 +1,20 @@
+[agent]
+entry = "trader:run"
+description = "Sizes one position from recent synthetic prices using recorded LLM replies"
+example_input = { ticker = "SYN03", day = 87 }
+timeout_s = 120
+
+[prompts]
+files = ["prompts/policy.md"]
+
+[cases]
+paths = ["cases/cases.jsonl"]
+
+[scoring]
+mode = "score"
+score = "pnl:score"
+
+[run]
+samples = 1
+min_pairs = 20
+max_calls = 200

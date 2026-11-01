@@ -238,7 +238,7 @@ function above is wired by this complete config:
 entry = "plain_agent:run"
 description = "Greets a person using the supplied greeting prompt"
 example_input = { question = "Ada" }
-timeout_s = 1
+timeout_s = 30
 
 [prompts]
 files = ["prompts/system.md"]

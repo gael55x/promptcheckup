@@ -5,3 +5,7 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .promptcheckup/
+
+# Outputs from running the examples
+examples/**/report.md
+examples/**/result.json

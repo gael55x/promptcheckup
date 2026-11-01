@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.109754, \"reason\": \"The 5-day return is -0.548% (98.012258 vs. 98.553089 five sessions earlier), which is negative, so the trend-following rule goes short. Position size is the smaller of 1 and |return_5d|/0.05 = 0.00548771/0.05 = 0.109754, giving a short of about 11% of capacity. The 20-day volatility is not used by this sizing rule.\"}"}

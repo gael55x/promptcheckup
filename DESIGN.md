@@ -382,8 +382,10 @@ Users add their LLM key as a repository secret. The workflows request the minimu
 | Example | Purpose | Scoring |
 |---|---|---|
 | `examples/support-bot/` | The 5-minute quickstart for general agent builders | `judge` |
-| `examples/trading/` | The flagship demo, an EvolveTrade-style agent: 15 US large caps, months after the model's cutoff, cached runs so it works without an API key | `score` (computed P&L with costs) |
+| `examples/trading/` | The flagship demo, an EvolveTrade-style LLM trader on a seeded synthetic market (15 fictional tickers with volatility regimes and rare crashes), with recorded model replies so it works without an API key | `score` (computed P&L with costs) |
 | `examples/planted/` | No LLM needed: shows that a naive comparison picks the wrong winner while paired replay picks correctly | `score` |
+
+The trading market is synthetic on purpose. A model may remember real historical prices, which would leak the answer into the test, and real price data has redistribution limits. Fictional tickers avoid both, and the generator is seeded so every run sees the same market. The support bot is deterministic with a planted prompt change, so it demonstrates the wiring and the judge rather than a production gain.
 
 ## 11. Test plan (TDD order)
 

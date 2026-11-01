@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -1, \"reason\": \"The 5-day return is -9.8%, which is negative, so the trend rule gives a short signal. The size is min(1, |-0.098| / 0.05) = min(1, 1.96) = 1, so the position is fully short. The drop was driven by a -9.4% last-day move, so the signal is strong and capped at full size.\"}"}

@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.49864, \"reason\": \"The 5-day return is -0.02493, which is negative, so the trend rule calls for a short. The size is the absolute 5-day return divided by 0.05, which is 0.49864, below the cap of 1. The 5-day return checks out against the closes: 72.298484 / 74.147119 - 1 \u2248 -0.02493.\"}"}

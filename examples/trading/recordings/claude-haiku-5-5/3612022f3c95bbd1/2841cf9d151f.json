@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0, \"reason\": \"The 5-day return of -3.01% gives a short signal, with a raw size of min(1, 0.0301/0.05), about 0.60. However, the 20-day volatility of 2.67% exceeds the 2% limit, so the policy requires staying flat. The last day's +3.05% move does not trigger the 4% drop rule, but the volatility filter takes precedence.\"}"}

@@ -65,7 +65,7 @@ def test_plain_first_gate_script(tmp_path):
     env = {"PYTHONPATH": str(ROOT / "src")}
     env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", "")
     result = subprocess.run(
-        ["sh", str(path / "first-gate.sh")], capture_output=True, text=True, env=env, timeout=1.5
+        ["sh", str(path / "first-gate.sh")], capture_output=True, text=True, env=env, timeout=10
     )
     assert result.returncode == 0, result.stderr
     assert "B is better:" in result.stdout
@@ -119,7 +119,7 @@ def test_node_protocol_files(tmp_path):
         input=(path / "input.json").read_text(),
         capture_output=True,
         text=True,
-        timeout=1,
+        timeout=10,  # an upper bound: a cold CI runner can take over a second to start node
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout == (path / "output.json").read_text()

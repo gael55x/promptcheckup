@@ -1,0 +1,1 @@
+{"reply": "```json\n{\"position\": 0.1011, \"reason\": \"The 5-day return is +0.5057% (106.980398 vs. 106.442166 five closes earlier), so the trend rule calls for a long position. Sizing uses the policy's formula: min(1, |0.005057| / 0.05) = 0.1011. The 20-day volatility is not part of this sizing rule and was not used.\"}\n```"}

@@ -1,0 +1,1 @@
+{"reply": "{\"position\": -0.6023, \"reason\": \"The 5-day return is -3.01%, which is negative, so the trend-following policy calls for a short position. Its size is the smaller of 1 and |return_5d| / 0.05 = 0.0301 / 0.05 = 0.6023, so the position is -0.6023. The 5-day return checks out against the closes: 79.396 / 81.861 - 1 = -0.0301.\"}"}

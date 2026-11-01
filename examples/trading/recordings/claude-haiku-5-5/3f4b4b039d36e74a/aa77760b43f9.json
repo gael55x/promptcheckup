@@ -1,0 +1,1 @@
+{"reply": "{\"position\": 0.1033, \"reason\": \"The 5-day return is +0.00516, which is positive, so the trend-following rule calls for a long position. The size is min(1, 0.00516 / 0.05) = 0.1033, a small position because the trend signal is weak. The 20-day return of -10.3% is negative, but the policy uses only the 5-day signal.\"}"}
