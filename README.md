@@ -109,6 +109,8 @@ It prints the planned agent and judge calls and asks before spending anything (`
 
 In judge mode, the judge is checked against itself (old prompt against old prompt) before its verdict is trusted.
 
+You can also [gate prompt changes in your test suite](docs/connect-your-agent.md#gate-prompt-changes-in-your-test-suite) with `assert_better` and `assert_not_worse`, and check time-series inputs with `assert_no_lookahead`. The helpers use plain functions and raise `AssertionError`, with no test-runner dependency.
+
 ## Weekly check-up
 
 ```bash
@@ -155,7 +157,7 @@ Seeded simulations of the shipped gate. All numbers can be reproduced with the c
 
 ![Detection rate by improvement size and case count](benchmarks/results/power.svg)
 
-**Simulated year of weekly check-ups.** Across 200 seeded years, with 50 fixed cases and 2 samples, the real `checkup()` flagged a persistent 0.5 noise-SD provider drop in **87.5%** of incident weeks (**89.0%** through week +2). A harmless change flagged **2.0% / 7.0%** over those windows. Quiet weeks flagged **2.3%**, or **1.075 false alarms/year**. Real +1 SD fixes were kept **92.5%** of the time; useless fixes were rejected **95.0%**. The useless-edit week happens once per year, so its 5.0% kept rate is noisy (binomial 95% CI about 2.4–9.0%); gating the same edit 2,000 more times gave **2.05%** false "better", matching the gate's design. Unreviewed prompt regressions were noticed **0%** in their week: a new prompt hash has no snapshot baseline. The **3.5%** with a later flag were quiet-week false alarms, not evidence of delayed detection; snapshots roll forward weekly. This is a simulation with planted effects of known size and plain-function model stubs, not real users or validation of a real LLM. Reproduce in about 30 seconds with `PYTHONPATH=src python benchmarks/run_checkup_simulation.py --repeats 200`, then `python benchmarks/charts.py`; the [CSV](benchmarks/results/checkup_simulation.csv) records all 10,400 runs.
+**Simulated year of weekly check-ups.** Across 200 seeded years, with 50 fixed cases and 2 samples, the real `checkup()` flagged a persistent 0.5 noise-SD provider drop in **87.5%** of incident weeks (**89.0%** through week +2). A harmless change flagged **2.0% / 7.0%** over those windows. Quiet weeks flagged **2.3%**, or **1.075 false alarms/year**. Real +1 SD fixes were kept **92.5%** of the time; useless fixes were rejected **95.0%**. The useless-edit week happens once per year, so its 5.0% kept rate is noisy (binomial 95% CI about 2.4–9.0%); gating the same edit 2,000 more times gave **2.05%** false "better", matching the gate's design. Unreviewed prompt regressions were flagged **98.5%** in their week (**99.0%** through week +2), using the previous prompt's snapshot. The planted prompt was 1 SD below initial quality, or 2 SD below a kept fix. Later flags are temporal associations, not proof of delayed detection; snapshots roll forward weekly. This is a simulation with planted effects of known size and plain-function model stubs, not real users or validation of a real LLM. Reproduce in about 30 seconds with `PYTHONPATH=src python benchmarks/run_checkup_simulation.py --repeats 200`, then `python benchmarks/charts.py`; the [CSV](benchmarks/results/checkup_simulation.csv) records all 10,400 runs.
 
 ![Weekly drift flags, five planted incidents, and observed proposal outcomes over 200 simulated years](benchmarks/results/checkup_timeline.svg)
 
