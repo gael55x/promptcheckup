@@ -248,13 +248,17 @@ Inconsistent judgments count as ties on purpose. This is the conservative choice
    - upper bound < 0: **worse**
    - otherwise: **inconclusive**
 4. **Skew guard (score mode only).**
-   - If the differences have sample skewness below −0.5, a "better" verdict is downgraded to **inconclusive**: "a few large losses could decide the outcome; add more cases". A "worse" verdict is downgraded the same way when skewness is above +0.5.
+   - A "better" verdict is downgraded to **inconclusive** ("a few large losses could decide the outcome; add more cases") when **both** of these hold:
+     - the differences have sample skewness below −0.5;
+     - at least one loss is bigger than the average gain.
+   - The second condition was added after a real example (19 of 20 cases improved, one tiny loss) was wrongly blocked. Small losses cannot hide a tail.
+   - A "worse" verdict is downgraded the same way: skewness above +0.5 and at least one gain bigger than the average loss.
    - Judge mode turns the guard off. Its scores are bounded in [−1, 1], so a rare huge loss is impossible, and a genuine improvement (mostly wins) is itself negatively skewed.
 5. **Why this design** (measured; the full numbers are in `benchmarks/`):
    - A percentile bootstrap was tried first. With 10–20 cases and no real difference, it said "better" up to 5% of the time, against a 2.5% target.
    - The plain t-interval meets the target on symmetric noise. On crash-skewed P&L (small gains most days, rare large losses) it said "better" **9–13%** of the time. A bootstrap-t (studentized bootstrap) only reduced that to 6–9%.
-   - The skew guard brings crash-skewed false "better" to **1.4% at 20 cases and about 0% at 50+**, and keeps every symmetric noise type at 2.2–2.7%.
-   - The cost: on symmetric data at 20 cases, the guard also blocks some real improvements. Detection of a large (0.8 SD) improvement falls from about 93% to 81%. Accepted, because a false "better" is the worst bug (section 3).
+   - The skew guard brings crash-skewed false "better" to **2.0% at 20 cases and about 0% at 50+**, and keeps every symmetric noise type at 2.2–2.7%.
+   - The cost: on symmetric data at 20 cases, the guard also blocks some real improvements. Detection of a large (0.8 SD) improvement falls from about 93% to 82%. In the trading scenario, paired replay picks the better prompt 91.7% of the time, says "not sure yet" 8.3% of the time, and never picks the worse one. Accepted, because a false "better" is the worst bug (section 3).
    - Known remaining worst cases:
      - mildly skewed data at 20 cases: about 3.2%;
      - an always-decisive judge (every case ±1) at certain case counts: up to 3.3% at 50 cases.
