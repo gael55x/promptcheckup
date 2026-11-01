@@ -9,7 +9,7 @@ from promptcheckup.runner.agents import (
     load_function,
     python_agent,
 )
-from promptcheckup.runner.replay import Cache, Replay, Run, prompt_hash, replay
+from promptcheckup.runner.replay import Cache, Replay, Run, prompt_hash, replay, run_prompts
 
 __all__ = [
     "Agent",
@@ -24,4 +24,5 @@ __all__ = [
     "prompt_hash",
     "python_agent",
     "replay",
+    "run_prompts",
 ]
