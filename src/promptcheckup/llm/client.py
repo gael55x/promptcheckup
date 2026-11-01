@@ -47,9 +47,8 @@ class LLM:
         self.usage = Usage()
         self._usage_lock = Lock()
 
-    def __call__(
-        self, prompt: str, *, temperature: float = 0.0, max_tokens: int | None = None
-    ) -> str:
+    def __call__(self, prompt: str) -> str:
+        """Send one user prompt at temperature 0, so judgments are repeatable."""
         headers = {"Content-Type": "application/json"}
         key = ""
         if self.api_key_env:
@@ -63,10 +62,8 @@ class LLM:
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
+            "temperature": 0.0,
         }
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
         request = Request(
             f"{self.base_url}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
