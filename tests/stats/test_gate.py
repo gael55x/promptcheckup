@@ -3,7 +3,7 @@ import random
 
 import pytest
 
-from promptcheckup.gate import decide, t_quantile
+from promptcheckup.stats import decide, t_quantile
 
 
 def noisy(mean: float, n: int, sd: float, seed: int) -> list[float]:

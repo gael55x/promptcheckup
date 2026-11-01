@@ -3,10 +3,10 @@
 import importlib.util
 from pathlib import Path
 
-from promptcheckup.gate import decide
+from promptcheckup import decide
 
 _spec = importlib.util.spec_from_file_location(
-    "planted", Path(__file__).parents[1] / "examples" / "planted" / "planted.py"
+    "planted", Path(__file__).parents[2] / "examples" / "planted" / "planted.py"
 )
 planted = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(planted)
