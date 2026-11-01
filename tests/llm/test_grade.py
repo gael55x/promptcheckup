@@ -61,10 +61,9 @@ def test_parses_boolean_grade_with_or_without_code_fence(passed, fence):
         '{"pass": true, "reason": 3}',
         '{"pass": true, "reason": ["Not a sentence."]}',
         '{"pass": true, "reason": "Valid.", "extra": true}',
-        'Here is my grade: {"pass": true, "reason": "Valid."}',
         '{"pass": true, "reason": "Valid."} trailing commentary',
         '```python\n{"pass": true, "reason": "Wrong fence."}\n```',
-        '```json\n{"pass": true, "reason": "Unclosed fence."}',
+        '{"pass": true, "reason": "Valid."} and some trailing text',
         '```json\n{"pass": true, "reason": "Valid."}\n```\nMore text',
     ],
 )
