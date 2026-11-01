@@ -56,15 +56,21 @@ def _llm(config):
     return LLM(**asdict(config.llm))
 
 
-def _confirmed(config, count, args):
-    n = count or 20
+def planned_checkup_calls(config, n_cases, command) -> dict:
+    """Cold-cache estimate for a check-up or proposal, including starter cases when needed."""
+    n = n_cases or 20
     gate = planned_calls(n, config.run.samples, config.scoring.mode)
-    drift_calls = gate["judge"] if args.command == "checkup" else 0
+    drift_calls = gate["judge"] if command == "checkup" else 0
     grade_calls = n if config.scoring.mode == "judge" else 0
-    llm_calls = gate["judge"] + drift_calls + grade_calls + 2 + int(not count)
+    llm_calls = gate["judge"] + drift_calls + grade_calls + 2 + int(not n_cases)
     agent_calls = n * config.run.samples + gate["agent"]
+    return {"agent": agent_calls, "llm": llm_calls}
+
+
+def _confirmed(config, count, args):
+    calls = planned_checkup_calls(config, count, args.command)
     print(
-        f"Planned: up to {agent_calls} agent calls, {llm_calls} LLM calls "
+        f"Planned: up to {calls['agent']} agent calls, {calls['llm']} LLM calls "
         f"(max_calls = {config.run.max_calls}; cache hits are free).",
         file=sys.stderr,
     )
