@@ -22,13 +22,20 @@ from promptcheckup.checkup.evaluate import (
 )
 from promptcheckup.checkup.failures import current_failures
 from promptcheckup.checkup.ledger import record_trial
-from promptcheckup.checkup.snapshot import load_latest_snapshot, load_snapshot, save_snapshot
+from promptcheckup.checkup.snapshot import load_latest_snapshot, save_snapshot
+from promptcheckup.checkup.split import split_cases, valid_holdout_share
 from promptcheckup.data import Case, append_cases
-from promptcheckup.errors import errors_as, fallback
+from promptcheckup.errors import fallback
 from promptcheckup.llm.patterns import Pattern, failure_patterns
 from promptcheckup.llm.propose import Proposal, ProposalRejected, propose
 from promptcheckup.llm.starter import starter_cases
-from promptcheckup.runner import Agent, AgentError, Cache, Replay, Run, prompt_hash, run_prompts
+from promptcheckup.runner import Agent, Cache, Replay, Run, prompt_hash, run_prompts
+from promptcheckup.runner.redaction import (
+    redacted_error,
+    redacted_run,
+    redacted_value,
+    redacting_agent,
+)
 from promptcheckup.stats import Verdict
 
 
@@ -52,6 +59,14 @@ class CheckupResult:
     gated_proposal: Proposal | None = None  # audit evidence, never authorization to write files
     drift_baseline: str = "same prompt"
     previous_prompts_hash: str = ""
+    current_runs: int = 0
+    current_errors: int = 0
+    failures: list[tuple] = field(default_factory=list)
+    untested_proposal: Proposal | None = None
+
+    @property
+    def all_current_failed(self) -> bool:
+        return self.current_runs > 0 and self.current_errors == self.current_runs
 
 
 @dataclass(frozen=True)
@@ -77,6 +92,7 @@ class _Plan:
     gate_cases: list[Case] | None = None
     confidence: float = 0.95
     trial_command: str | None = None  # CLI opts into durable recording immediately after gating
+    holdout_share: float | None = None
 
 
 @dataclass(frozen=True)
@@ -86,9 +102,13 @@ class _State:
     current: Replay = field(default_factory=lambda: Replay([], 0, False))
     failures: list[tuple] = field(default_factory=list)
     stopped: bool = False
+    learning_cases: list[Case] = field(default_factory=list)
+    gate_cases: list[Case] = field(default_factory=list)
 
 
-def checkup(agent, cases, prompts, llm, **settings) -> CheckupResult:
+def checkup(
+    agent, cases, prompts, llm, *, holdout_share: float | None = None, **settings
+) -> CheckupResult:
     """Starter cases, current runs, drift, failures, patterns, and a gated proposal.
 
     Settings are the fields of `_Plan`: directory (project root), score_fn or criteria,
@@ -97,28 +117,40 @@ def checkup(agent, cases, prompts, llm, **settings) -> CheckupResult:
     gate_cases and confidence override only the proposal gate. trial_command opts
     into recording each gate immediately, including rejected and budget-stopped gates.
     """
-    plan = _plan(agent, prompts, llm, settings)
+    plan = _plan(agent, prompts, llm, dict(settings, holdout_share=holdout_share))
     return _run(plan, _start(plan, cases), CHECKUP_STEPS)
 
 
-def propose_only(agent, cases, prompts, llm, **settings) -> CheckupResult:
+def propose_only(
+    agent, cases, prompts, llm, *, holdout_share: float | None = None, **settings
+) -> CheckupResult:
     """Current runs, failures, patterns and the gate, without starter cases or drift."""
     if not cases:
         raise ValueError("propose requires existing cases")
-    plan = _plan(agent, prompts, llm, settings)
+    plan = _plan(agent, prompts, llm, dict(settings, holdout_share=holdout_share))
     state = _start(plan, cases)
     return _run(plan, replace(state, result=replace(state.result, drift_checked=False)), PROPOSE)
 
 
 def _plan(agent, prompts, llm, settings) -> _Plan:
     plan = _Plan(agent, prompts, llm, **settings)
+    _validate_holdout(plan)
     # Outputs are redacted as they leave the agent: before the cache, snapshots and the LLM.
     return replace(
         plan,
         directory=Path(plan.directory),
-        agent=_redacting(agent, plan.redact),
+        agent=redacting_agent(agent, plan.redact),
         scorer=_scorer(plan),
     )
+
+
+def _validate_holdout(plan):
+    if plan.holdout_share is None:
+        return
+    if not valid_holdout_share(plan.holdout_share):
+        raise ValueError("holdout_share must be between 0 and 1 (exclusive)")
+    if plan.gate_cases is not None:
+        raise ValueError("provide holdout_share or gate_cases, not both")
 
 
 def _start(plan, cases) -> _State:
@@ -131,7 +163,7 @@ def _start(plan, cases) -> _State:
 
 def _run(plan, state, steps) -> CheckupResult:
     final = reduce(lambda done, step: done if done.stopped else step(plan, done), steps, state)
-    if final.stopped:
+    if final.stopped and not final.result.all_current_failed:
         return replace(final.result, budget_exhausted=True, proposal=None)
     return final.result
 
@@ -144,11 +176,19 @@ def _starter(plan, state) -> _State:
         return state
     if _remaining(plan, state) < 1:
         return replace(state, stopped=True)
-    example = _redacted(plan.redact, plan.example_input)
+    example = redacted_value(plan.redact, plan.example_input)
     generated = starter_cases(plan.llm, plan.prompts, plan.description, example)
-    cases = [replace(case, input=_redacted(plan.redact, case.input)) for case in generated]
+    cases = [replace(case, input=redacted_value(plan.redact, case.input)) for case in generated]
     append_cases(plan.directory / "cases" / "starter.jsonl", cases)
     return _spend(replace(state, cases=cases), 1, starter_created=len(cases))
+
+
+def _split(plan, state) -> _State:
+    if plan.holdout_share is None:
+        gate = state.cases if plan.gate_cases is None else list(plan.gate_cases)
+        return replace(state, learning_cases=state.cases, gate_cases=gate)
+    learning, gate = split_cases(state.cases, plan.holdout_share)
+    return replace(state, learning_cases=learning, gate_cases=gate)
 
 
 def _current(plan, state) -> _State:
@@ -163,8 +203,19 @@ def _current(plan, state) -> _State:
     )
     share = sum(case.source == "synthetic" for case in state.cases) / len(state.cases)
     errors = [run for run in replayed.runs if run.error is not None]
-    state = _spend(state, replayed.calls, synthetic_share=share, errors=errors)
-    return replace(state, current=replayed, stopped=replayed.budget_exhausted)
+    state = _spend(
+        state,
+        replayed.calls,
+        synthetic_share=share,
+        errors=errors,
+        current_runs=len(replayed.runs),
+        current_errors=len(errors),
+    )
+    return replace(
+        state,
+        current=replayed,
+        stopped=replayed.budget_exhausted or state.result.all_current_failed,
+    )
 
 
 def _drift(plan, state) -> _State:
@@ -176,20 +227,20 @@ def _drift(plan, state) -> _State:
 
 
 def _compare_snapshot(plan, state) -> _State:
-    previous = load_snapshot(plan.directory, state.result.prompts_hash)
-    if previous is not None:
-        return _compare_with(plan, state, previous)
-    latest = load_latest_snapshot(plan.directory, excluding=state.result.prompts_hash)
+    latest = load_latest_snapshot(plan.directory)
     if latest is None:
         return state
     previous_hash, previous = latest
-    state = _spend(state, 0, drift_baseline="previous prompt", previous_prompts_hash=previous_hash)
+    if previous_hash != state.result.prompts_hash:
+        state = _spend(
+            state, 0, drift_baseline="previous prompt", previous_prompts_hash=previous_hash
+        )
     return _compare_with(plan, state, previous)
 
 
 def _compare_with(plan, state, previous) -> _State:
     ids = {case.id for case in state.cases}
-    old = [run for run in previous.runs if run.case_id in ids]
+    old = [redacted_run(plan.redact, run) for run in previous.runs if run.case_id in ids]
     new = [replace(run, prompt_set="B") for run in state.current.runs]
     drift = evaluate_replay(
         state.cases,
@@ -216,7 +267,23 @@ def _failures(plan, state) -> _State:
         criteria=plan.criteria,
     )
     safe = _safe_failures(plan, state.cases, failures)
-    return replace(_spend(state, cost), failures=safe)
+    learning = _learning_failures(plan, state, safe)
+    return replace(_spend(state, cost, failures=safe), failures=learning)
+
+
+def _learning_failures(plan, state, failures):
+    ids = {case.id for case in state.learning_cases}
+    if plan.score_fn is None or plan.holdout_share is None:
+        return [row for row in failures if row[0] in ids]
+    runs = [run for run in state.current.runs if run.case_id in ids]
+    selected = current_failures(
+        state.learning_cases,
+        replace(state.current, runs=runs),
+        score_fn=plan.score_fn,
+        llm=plan.llm,
+        criteria=plan.criteria,
+    )
+    return _safe_failures(plan, state.learning_cases, selected)
 
 
 def _patterns(plan, state) -> _State:
@@ -243,8 +310,18 @@ def _proposal(plan, state) -> _State:
 
 
 def _gate(plan, state, proposal) -> _State:
-    # Replays current against proposed back-to-back; cached current outputs are free.
-    cases = state.cases if plan.gate_cases is None else plan.gate_cases
+    # Replays both sides back-to-back unless the entire pair is cached.
+    cases = state.gate_cases
+    if plan.holdout_share is not None and len(cases) < plan.min_pairs:
+        return _spend(
+            state,
+            0,
+            untested_proposal=proposal,
+            proposal_rejection=(
+                f"not tested: {len(cases)} held-out cases, need at least "
+                f"{plan.min_pairs}; add cases"
+            ),
+        )
     result = evaluate(
         plan.agent,
         cases,
@@ -259,16 +336,13 @@ def _gate(plan, state, proposal) -> _State:
         confidence=plan.confidence,
     )
     _record_trial(plan, cases, proposal, result)
-    gate_errors = [
-        run for run in result.errors if plan.gate_cases is not None or run.prompt_set == "B"
-    ]
     state = _spend(
         state,
         result.replay.calls + result.scores.judge_calls,
         proposal_verdict=result.verdict,
         gated_proposal=proposal,
         proposal=proposal if result.verdict.decision == "better" else None,
-        errors=[*state.result.errors, *gate_errors],
+        errors=[*state.result.errors, *result.errors],
     )
     return replace(state, stopped=result.budget_exhausted)
 
@@ -286,8 +360,8 @@ def _record_trial(plan, cases, proposal, result):
         )
 
 
-CHECKUP_STEPS = (_starter, _current, _drift, _failures, _patterns, _proposal)
-PROPOSE = (_current, _failures, _patterns, _proposal)
+CHECKUP_STEPS = (_starter, _split, _current, _drift, _failures, _patterns, _proposal)
+PROPOSE = (_split, _current, _failures, _patterns, _proposal)
 
 
 # Helpers -------------------------------------------------------------------------------
@@ -310,27 +384,14 @@ def _scorer(plan) -> Scorer:
     return redacted_inputs(judge_mode(plan.llm, plan.criteria, cache=plan.cache), plan.redact)
 
 
-def _redacting(agent, redact) -> Agent:
-    if redact is None:
-        return agent
-    return lambda case, prompts, timeout_s: _redacted(redact, agent(case, prompts, timeout_s))
-
-
-def _redacted(redact, value):
-    if redact is None:
-        return value
-    with errors_as(AgentError, {Exception: lambda error: f"run.redact failed: {error}"}):
-        return redact(value)
-
-
 def _safe_cases(plan, cases) -> list[Case]:
-    return [replace(case, input=_redacted(plan.redact, case.input)) for case in cases]
+    return [replace(case, input=redacted_value(plan.redact, case.input)) for case in cases]
 
 
 def _safe_failures(plan, cases, failures) -> list[tuple]:
     # Inputs and error text are redacted before they reach the pattern and proposal calls.
-    inputs = {case.id: _redacted(plan.redact, case.input) for case in cases}
+    inputs = {case.id: redacted_value(plan.redact, case.input) for case in cases}
     return [
-        (key, inputs[key], output, _redacted(plan.redact, reason))
+        (key, inputs[key], output, redacted_error(plan.redact, reason))
         for key, _, output, reason in failures
     ]

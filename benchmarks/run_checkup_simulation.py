@@ -38,6 +38,7 @@ from types import MappingProxyType
 
 from promptcheckup.checkup.checkup import checkup
 from promptcheckup.checkup.evaluate import evaluate, score_mode
+from promptcheckup.checkup.split import split_cases
 from promptcheckup.data import Case
 
 RESULTS = Path(__file__).parent / "results"
@@ -50,6 +51,7 @@ PROMPT_TEXT = (
 
 
 NULL_SEED = 10_000  # null-check seeds start beyond any year's repeat seeds
+HOLDOUT_SHARE = 0.5  # the CLI default for run.holdout
 
 
 @dataclass(frozen=True)
@@ -251,6 +253,7 @@ def run_week(config, context, cases, current, incident, directory):
         samples=config.samples,
         max_calls=3 * config.cases * config.samples + 2,
         agent_version=context.provider,
+        holdout_share=HOLDOUT_SHARE,
     )
     if result.budget_exhausted or result.errors or not result.snapshot_saved:
         raise RuntimeError("simulation check-up failed or did not save a complete snapshot")
@@ -393,7 +396,7 @@ def null_trial(config: Config, trial: int, current: dict, useless: dict) -> str:
     run = make_agent(config, Week(NULL_SEED + trial, 32, 0.0, "original"), [])
     return evaluate(
         lambda case, given, timeout_s: run(case, given),
-        make_cases(config),
+        split_cases(make_cases(config), HOLDOUT_SHARE)[1],  # the week's gate cases
         current,
         useless,
         score_mode(score),

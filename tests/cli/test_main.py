@@ -76,6 +76,40 @@ def file_args(project):
     return ["--old", str(project / "old.md"), "--new", str(project / "new.md")]
 
 
+def test_gate_failed_majority_exits_inconclusive(project):
+    (project / "tiny_agent.py").write_text(
+        "def run(case, prompts):\n"
+        "    if prompts['system.md'] == '2' and case['index'] >= 20:\n"
+        "        raise ValueError('failed')\n"
+        "    return 0.5 if prompts['system.md'] == '0' else 1\n"
+        "def score(case, output):\n    return output\n",
+        encoding="utf-8",
+    )
+    (project / "cases.jsonl").write_text(
+        "".join(json.dumps({"id": str(i), "input": {"index": i}}) + "\n" for i in range(100)),
+        encoding="utf-8",
+    )
+    result = cli(project, *file_args(project), "--yes")
+    assert result.returncode == 2
+    assert "160 of 400 runs failed; fix the errors and run again" in result.stdout
+
+
+def test_gate_redacts_agent_errors_in_report_and_json(project):
+    (project / "tiny_agent.py").write_text(
+        'import json\ndef run(case, prompts):\n    raise ValueError("private-value")\n'
+        "def score(case, output):\n    return 0\n"
+        "def redact(value):\n"
+        '    return json.loads(json.dumps(value).replace("private-value", "safe"))\n',
+        encoding="utf-8",
+    )
+    config = project / "promptcheckup.toml"
+    config.write_text(config.read_text() + '\n[run]\nredact = "tiny_agent:redact"\n')
+    result = cli(project, *file_args(project), "--yes", "--json", "result.json")
+    assert result.returncode == 2
+    assert "private-value" not in result.stdout + result.stderr
+    assert "private-value" not in (project / "result.json").read_text()
+
+
 def test_init_writes_three_templates_and_skips_existing_files(tmp_path, capsys):
     assert main(["init", "--dir", str(tmp_path)]) == 0
     assert load_config(tmp_path / "promptcheckup.toml").scoring.mode == "judge"

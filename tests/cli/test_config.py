@@ -30,6 +30,18 @@ def write_config(tmp_path, text):
     return path
 
 
+def test_holdout_defaults_to_half_and_accepts_valid_share(tmp_path):
+    assert load_config(write_config(tmp_path, SCORE_CONFIG)).run.holdout == 0.5
+    config = load_config(write_config(tmp_path, SCORE_CONFIG + "\n[run]\nholdout = 0.7\n"))
+    assert config.run.holdout == 0.7
+
+
+@pytest.mark.parametrize("value", ["0", "1", "-0.1", "true", '"0.5"', "nan", "inf"])
+def test_holdout_rejects_invalid_share(tmp_path, value):
+    with pytest.raises(ConfigError, match="run.holdout must be between 0 and 1"):
+        load_config(write_config(tmp_path, SCORE_CONFIG + f"\n[run]\nholdout = {value}\n"))
+
+
 def test_valid_config_fills_defaults_and_is_frozen(tmp_path):
     config = load_config(write_config(tmp_path, SCORE_CONFIG))
 

@@ -1,9 +1,13 @@
 """Test-suite helpers using the shipped gate, with no test-runner dependency."""
 
+import random
+from copy import deepcopy
+
 from promptcheckup import __version__
 from promptcheckup.checkup.evaluate import Evaluation, evaluate, judge_mode, score_mode
 from promptcheckup.checkup.report import gate_report
 from promptcheckup.data import Case, case_id
+from promptcheckup.errors import errors_as
 from promptcheckup.runner import function_agent
 
 SCORING_RULES = (
@@ -77,26 +81,39 @@ def _assert_verdict(result, allowed, confidence) -> Evaluation:
 
 
 def assert_no_lookahead(view, history, decision_times, *, time_key="time") -> None:
-    """Require a row-based view to ignore changes to numeric columns after each time."""
+    """Require a view to ignore affine/random future changes and removal of future rows."""
     for time in decision_times:
-        perturbed = [_perturbed_row(row, time, time_key) for row in history]
-        if view(perturbed, time) != view(history, time):
-            raise AssertionError(
-                f"view({time!r}) changed when only data after {time!r} changed: it reads the future"
-            )
+        _assert_time(view, history, time, time_key)
 
 
-def _perturbed_row(row, time, time_key):
+def _assert_time(view, history, time, time_key):
+    expected = deepcopy(view(deepcopy(history), time))
+    message = f"view({time!r}) changed when only data after {time!r} changed: it reads the future"
+    for changed in _future_histories(history, time, time_key):
+        with errors_as(AssertionError, {Exception: message}):
+            actual = view(deepcopy(changed), time)
+        if actual != expected:
+            raise AssertionError(message)
+
+
+def _future_histories(history, time, time_key):
+    rng = random.Random(0)
+    changes = (lambda value: value * 1.37 + 1, lambda value: value * rng.uniform(0.5, 1.5))
+    for change in changes:
+        yield [_perturbed_row(row, time, time_key, change) for row in history]
+    yield [row for row in history if row[time_key] <= time]
+
+
+def _perturbed_row(row, time, time_key, change):
     if row[time_key] <= time:
         return dict(row)
     return {
-        key: value if key == time_key else _perturbed_number(value) for key, value in row.items()
+        key: value if key == time_key else _perturbed_number(value, change)
+        for key, value in row.items()
     }
 
 
-def _perturbed_number(value):
+def _perturbed_number(value, change):
     return (
-        value * 1.37 + 1
-        if isinstance(value, (int, float)) and not isinstance(value, bool)
-        else value
+        change(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else value
     )

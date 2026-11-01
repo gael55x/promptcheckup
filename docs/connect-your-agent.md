@@ -388,7 +388,7 @@ The plain example with `--no-llm` prints this (elapsed time varies):
 doctor makes 2 agent calls and 0 judge calls
 ok    config     loaded promptcheckup.toml
 ok    prompts    prompts/system.md
-ok    cases      20 cases, 0% synthetic
+warn  cases      20 cases, 0% synthetic; 10 held-out cases, need at least 20; add cases before testing proposals
 ok    agent      plain_agent:run ran in 0.001s; output: {"answer": "Hello, Ada!"}
 ok    prompt-use the output changed with the supplied prompts
 ok    score      plain_agent:score returned 1.0

@@ -11,16 +11,21 @@ from promptcheckup.stats import decide
 from tests.checkup.test_checkup import block, llm_stub
 
 PROMPTS = {"system": "version: 0\nFollow the rules.\n"}
+# Fixed IDs: the 20 lowest SHA-256 hashes form the held-out half at share 0.5.
+CASE_OFFSETS = (
+    (0, (6, 9, 14, 18, 19, 21, 23, 24, 28, 33, 34, 40, 42, 49, 50, 52, 56, 57, 58, 59)),
+    (0xF0000000, (0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 17, 18, 19, 20, 21, 22, 23)),
+)
 
 
 def cases():
     return [
         Case(
-            f"{prefix + i:08x}",
-            {"id": f"{prefix + i:08x}", "text": f"private-{prefix}-{i}", "weight": 1 + i / 20},
+            f"{prefix + offset:08x}",
+            {"id": f"{prefix + offset:08x}", "text": f"private-{prefix}-{i}", "weight": 1 + i / 20},
         )
-        for prefix in (0, 0xF0000000)
-        for i in range(20)
+        for prefix, offsets in CASE_OFFSETS
+        for i, offset in enumerate(offsets)
     ]
 
 
@@ -56,6 +61,7 @@ def run(tmp_path, *, llm=None, function=agent, data=None, **settings):
         "score_fn": lambda case, out: out,
         "samples": 1,
         "min_pairs": 5,
+        "holdout_share": 0.5,
         **settings,
     }
     return evolve(
@@ -71,7 +77,7 @@ def test_split_is_deterministic_disjoint_complete_ordered_and_outcome_blind():
     data = cases()
     learning, held = split_cases(data, 0.3)
     assert split_cases(data, 0.3) == (learning, held)
-    assert learning == data[20:] and held == data[:20]
+    assert len(held) == int(0.3 * len(data) + 0.5)
     assert set(c.id for c in learning).isdisjoint(c.id for c in held)
     assert len(learning) + len(held) == len(data)
     changed = [replace(c, input={"score": -999, "text": "changed"}) for c in data]
@@ -81,9 +87,34 @@ def test_split_is_deterministic_disjoint_complete_ordered_and_outcome_blind():
     ]
 
 
-def test_split_uses_first_eight_hex_digits_and_strict_boundary():
-    data = [Case("80000000abcd", {}), Case("7fffffffabcd", {})]
-    assert split_cases(data, 0.5) == ([data[0]], [data[1]])
+@pytest.mark.parametrize("n,share,held", [(20, 0.5, 10), (40, 0.5, 20), (25, 0.3, 8), (5, 0.5, 3)])
+def test_split_holds_out_an_exact_count_of_lowest_hashes(n, share, held):
+    from hashlib import sha256
+
+    data = [Case(f"customer-{i}", {}) for i in range(n)]
+    learning, holdout = split_cases(data, share)
+    assert len(holdout) == held and len(learning) == n - held
+    lowest = sorted(data, key=lambda case: sha256(case.id.encode()).digest())[:held]
+    assert {case.id for case in holdout} == {case.id for case in lowest}
+
+
+def test_split_accepts_arbitrary_short_and_unicode_ids():
+    data = [Case(key, {"value": i}) for i, key in enumerate(("", "x", "customer-12", "你好", "é"))]
+    first = split_cases(data, 0.5)
+    assert split_cases(data, 0.5) == first
+    assert sum(map(len, first)) == len(data)
+    changed = [replace(case, input={"different": True}) for case in data]
+    assert [[case.id for case in part] for part in split_cases(changed, 0.5)] == [
+        [case.id for case in part] for part in first
+    ]
+
+
+@pytest.mark.parametrize("share", [0.3, 0.5, 0.7])
+def test_split_hash_is_uniform_over_synthetic_ids(share):
+    data = [Case(f"customer-{i}", {}) for i in range(1000)]
+    learning, held = split_cases(data, share)
+    assert abs(len(held) / len(data) - share) <= 0.05
+    assert set(case.id for case in learning).isdisjoint(case.id for case in held)
 
 
 @pytest.mark.parametrize("rounds,expected", [(1, 0.95), (5, 0.99), (100, 0.999)])
@@ -109,7 +140,7 @@ def test_evolve_accepts_two_good_rounds_then_stops_at_useless_third(tmp_path):
 
 
 def test_learning_only_overfit_is_rejected_by_held_out_gate(tmp_path):
-    learning, _ = split_cases(cases(), 0.3)
+    learning, _ = split_cases(cases(), 0.5)
     edit = PROMPTS["system"] + "reward_ids: " + " ".join(c.id for c in learning)
 
     def memorizing(case, prompts):
@@ -127,7 +158,8 @@ def test_proposal_and_pattern_requests_never_contain_holdout_ids_or_inputs(tmp_p
     seen = []
     result = run(tmp_path, llm=proposals(seen=seen))
     requests = "\n".join(seen)
-    _, held = split_cases(cases(), 0.3)
+    # Match run(): int(0.5 * 40 + 0.5) = 20 held-out IDs, the first CASE_OFFSETS group.
+    _, held = split_cases(cases(), 0.5)
     assert len([p for p in seen if "<examples>" in p]) == 3
     assert all(c.id not in requests and c.input["text"] not in requests for c in held)
     assert result.holdout_ids == [c.id for c in held]
@@ -135,7 +167,7 @@ def test_proposal_and_pattern_requests_never_contain_holdout_ids_or_inputs(tmp_p
 
 def test_every_round_gate_uses_adjusted_confidence(tmp_path):
     result = run(tmp_path, rounds=5)
-    _, held = split_cases(cases(), 0.3)
+    _, held = split_cases(cases(), 0.5)
     expected = decide([c.input["weight"] for c in held], min_pairs=5, confidence=0.99)
     assert result.confidence_per_round == 0.99
     assert result.rounds[0].verdict == result.rounds[1].verdict == expected
@@ -164,8 +196,9 @@ def test_evolve_validation_has_exact_messages(tmp_path, settings, message):
 
 
 def test_evolve_requires_learning_cases(tmp_path):
+    # int(0.9 * 5 + 0.5) = 5: satisfy min_pairs while leaving no learning cases.
     with pytest.raises(ValueError, match="need at least 1 learning case, got 0"):
-        run(tmp_path, data=cases()[:20])
+        run(tmp_path, data=cases()[:5], holdout_share=0.9)
 
 
 @pytest.mark.parametrize("budget,completed", [(0, 0), (21, 0), (61, 0), (62, 1), (100, 1)])

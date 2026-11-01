@@ -90,7 +90,8 @@ def test_doctor_working_score_project_has_ordered_checks(project, capsys):
     before = Path.cwd()
     assert execute(project) == 0
     result = rows(capsys)
-    assert all(result[name][0] == "ok" for name in ORDER if name != "llm")
+    assert all(result[name][0] == "ok" for name in ORDER if name not in ("llm", "cases"))
+    assert result["cases"][0] == "warn"  # five total cases cannot supply five held-out cases
     assert result["llm"][0] == "skip"
     assert "prompts/system.md" in result["prompts"][1]
     assert "5 cases" in result["cases"][1] and "40% synthetic" in result["cases"][1]
@@ -105,6 +106,33 @@ def test_doctor_check_is_frozen():
     result = Check("config", "ok", "ready")
     with pytest.raises(FrozenInstanceError):
         result.status = "fail"
+
+
+def test_doctor_warns_when_holdout_is_below_min_pairs(project, capsys):
+    assert execute(project) == 0
+    status, message = rows(capsys)["cases"]
+    assert status == "warn"
+    assert "held-out cases" in message and "need at least 5" in message
+
+
+def test_doctor_redacts_agent_exception_text(project, capsys):
+    write_agent(project, 'raise ValueError("private-value")')
+    module = (project / "module-name").read_text()
+    with (project / f"{module}.py").open("a") as stream:
+        stream.write('def redact(value):\n    return str(value).replace("private-value", "safe")\n')
+    edit_config(project, "max_calls = 400", f'max_calls = 400\nredact = "{module}:redact"')
+    assert execute(project) == 3
+    captured = capsys.readouterr()
+    assert "private-value" not in captured.out + captured.err
+
+
+def test_checkup_plan_keeps_all_case_drift_cost_with_smaller_holdout(project):
+    from promptcheckup.cli.checkup import planned_checkup_calls
+
+    add_llm(project)
+    config = load_config(project / "promptcheckup.toml")
+    plan = planned_checkup_calls(config, 20, "checkup", n_gate=5)
+    assert plan == {"agent": 60, "llm": 30 + 120 + 20 + 2}
 
 
 def test_doctor_bad_config_skips_every_dependent_check(project, capsys):

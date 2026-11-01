@@ -6,6 +6,7 @@ from functools import reduce
 from itertools import repeat
 
 from promptcheckup.checkup.checkup import propose_only
+from promptcheckup.checkup.split import split_cases, valid_holdout_share
 from promptcheckup.data import Case
 from promptcheckup.llm.propose import Proposal
 from promptcheckup.runner import Agent, Run
@@ -17,7 +18,7 @@ OPTION_RULES = (
         "rounds must be at least 1",
     ),
     (
-        lambda rounds, share, confidence: type(share) in (int, float) and 0 < share < 1,
+        lambda rounds, share, confidence: valid_holdout_share(share),
         "holdout_share must be between 0 and 1 (exclusive)",
     ),
     (
@@ -75,15 +76,6 @@ class _Plan:
     llm: Callable[[str], str]
     settings: dict
     max_calls: int
-
-
-def split_cases(cases, holdout_share) -> tuple[list[Case], list[Case]]:
-    """Preserve order in an outcome-blind split determined only by case IDs."""
-    learning, holdout = [], []
-    for case in cases:
-        held = int(case.id[:8], 16) / 16**8 < holdout_share
-        (holdout if held else learning).append(case)
-    return learning, holdout
 
 
 def round_confidence(base, rounds) -> float:

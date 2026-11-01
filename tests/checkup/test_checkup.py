@@ -152,6 +152,98 @@ def test_checkup_records_rejection_without_gating(tmp_path):
     assert result.calls == 12
 
 
+@pytest.mark.parametrize("runner", [checkup, propose_only])
+def test_proposal_gate_preserves_a_errors_and_blocks_acceptance(tmp_path, runner):
+    calls = {}
+
+    def flaky_baseline(case, prompts):
+        key = case["index"]
+        calls[key] = calls.get(key, 0) + 1
+        if key == 0 and calls[key] == 3:
+            raise ValueError("fresh baseline failed")
+        return agent(case, prompts)
+
+    result = runner(
+        function_agent(flaky_baseline),
+        cases(6),
+        PROMPTS,
+        llm_stub(),
+        directory=tmp_path,
+        score_fn=score,
+        min_pairs=5,
+    )
+    assert result.proposal is None
+    assert result.proposal_verdict.decision == "inconclusive"
+    assert result.proposal_verdict.reason == "1 of 24 runs failed; fix the errors and run again"
+    assert len(result.errors) == 1 and result.errors[0].prompt_set == "A"
+
+
+def test_all_current_runs_failed_stops_before_drift_or_llm(tmp_path):
+    def broken(case, prompts):
+        raise ValueError("unavailable")
+
+    seen = []
+    result = checkup(
+        function_agent(broken),
+        cases(10),
+        PROMPTS,
+        llm_stub(seen=seen),
+        directory=tmp_path,
+        score_fn=score,
+        min_pairs=5,
+    )
+    assert seen == []
+    assert result.calls == len(result.errors) == 20
+    assert result.drift is None and not result.snapshot_saved
+    assert result.patterns == [] and result.proposal is None
+    assert not result.budget_exhausted
+    from promptcheckup.checkup.report import checkup_report
+
+    assert checkup_report(result, version="test").startswith(
+        "Check-up failed: all 20 runs errored."
+    )
+
+
+def test_partial_current_errors_do_not_claim_stability(tmp_path):
+    def flaky(case, prompts):
+        if case["index"] == 0:
+            raise ValueError("unavailable")
+        return agent(case, prompts)
+
+    result = checkup(
+        function_agent(flaky),
+        cases(),
+        PROMPTS,
+        llm_stub(rejected=True),
+        directory=tmp_path,
+        score_fn=score,
+        min_pairs=5,
+    )
+    from promptcheckup.checkup.report import checkup_report
+
+    headline = checkup_report(result, version="test").splitlines()[0]
+    assert headline.startswith("Partly checked: 2 of 10 runs failed.")
+    assert "1 failure pattern" in headline
+
+
+def test_too_few_drift_pairs_do_not_claim_stability(tmp_path):
+    check_prompt(tmp_path, PROMPTS)
+    result = checkup(
+        function_agent(agent),
+        cases(6)[1:],
+        PROMPTS,
+        llm_stub(rejected=True),
+        directory=tmp_path,
+        score_fn=score,
+        min_pairs=5,
+    )
+    from promptcheckup.checkup.report import checkup_report
+
+    headline = checkup_report(result, version="test").splitlines()[0]
+    assert not headline.startswith("Stable")
+    assert "need at least 5" in headline
+
+
 def test_checkup_judge_grades_sample_zero_and_feeds_patterns(tmp_path):
     seen = []
     result = checkup(
@@ -291,7 +383,7 @@ def test_agent_errors_are_failures_and_remain_reportable(tmp_path):
         min_pairs=5,
     )
     assert len(result.errors) == 10
-    assert result.patterns[0].case_ids == [case.id for case in cases()]
+    assert result.patterns == []  # no patterns or proposals after every current run failed
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), "not a number"])
@@ -328,7 +420,7 @@ def test_drift_uses_only_cases_shared_with_previous_snapshot(tmp_path):
     assert result.drift.verdict.decision == "inconclusive"
 
 
-def test_cache_hits_are_free_across_current_and_gate_runs(tmp_path):
+def test_proposal_gate_refreshes_both_sides_when_only_current_is_cached(tmp_path):
     result = checkup(
         function_agent(agent),
         cases(),
@@ -339,7 +431,7 @@ def test_cache_hits_are_free_across_current_and_gate_runs(tmp_path):
         min_pairs=5,
         cache=Cache(tmp_path / "cache"),
     )
-    assert result.calls == 22  # 10 current + 2 LLM + 10 new-prompt runs
+    assert result.calls == 32  # 10 current + 2 LLM + 20 fresh, paired gate runs
 
 
 def test_redaction_precedes_starter_storage_snapshots_cache_and_llm(tmp_path):
@@ -492,7 +584,7 @@ def test_repeat_checkups_report_each_failed_run_once(tmp_path):
     first, second = execute(), execute()
 
     assert len(first.errors) == len(second.errors) == 10
-    assert second.drift is not None
+    assert second.drift is None  # failed current runs never become drift baselines
 
 
 def check_prompt(directory, prompts, **settings):
@@ -563,12 +655,24 @@ def test_new_prompt_drift_uses_only_shared_cases(tmp_path):
     assert result.drift_baseline == "previous prompt"
 
 
-def test_same_prompt_snapshot_takes_priority_over_newer_other_prompt(tmp_path):
+def test_same_prompt_snapshot_does_not_override_newer_other_prompt(tmp_path):
     check_prompt(tmp_path, PROMPTS)
     check_prompt(tmp_path, {"system": "2"})
     result = check_prompt(tmp_path, PROMPTS)
-    assert result.drift_baseline == "same prompt"
-    assert result.drift.verdict.decision == "inconclusive"
+    assert result.drift_baseline == "previous prompt"
+    assert result.previous_prompts_hash == prompt_hash({"system": "2"})
+    assert result.drift.verdict.decision == "worse"
+
+
+def test_rollback_is_compared_with_latest_improved_snapshot(tmp_path):
+    check_prompt(tmp_path, PROMPTS)
+    improved = {"system": "4"}
+    check_prompt(tmp_path, improved)
+    result = check_prompt(tmp_path, PROMPTS)
+    assert result.drift.verdict.decision == "worse"
+    assert result.drift.verdict.mean == -4
+    assert result.drift_baseline == "previous prompt"
+    assert result.previous_prompts_hash == prompt_hash(improved)
 
 
 @pytest.mark.parametrize("cap", [9, 39])

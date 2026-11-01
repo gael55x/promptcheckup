@@ -4,6 +4,7 @@ import tomllib
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from promptcheckup.checkup.split import valid_holdout_share
 from promptcheckup.errors import errors_as
 
 TEXT_FIELDS = (
@@ -78,6 +79,10 @@ RULES = tuple(
     ),
     (lambda c: _positive(c.agent.timeout_s), "agent.timeout_s must be positive"),
     (lambda c: _positive(c.run.cache_ttl_hours), "run.cache_ttl_hours must be positive"),
+    (
+        lambda c: valid_holdout_share(c.run.holdout),
+        "run.holdout must be between 0 and 1 (exclusive)",
+    ),
 )
 
 
@@ -128,6 +133,7 @@ class RunConfig:
     min_pairs: int = 20
     redact: str = ""
     confidence: float = 0.95
+    holdout: float = 0.5
 
 
 @dataclass(frozen=True)

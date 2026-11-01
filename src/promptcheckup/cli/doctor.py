@@ -15,6 +15,7 @@ from time import monotonic
 from typing import Any
 
 from promptcheckup.checkup.evaluate import planned_calls
+from promptcheckup.checkup.split import split_cases
 from promptcheckup.cli.checkup import planned_checkup_calls
 from promptcheckup.cli.config import Config, ConfigError, load_config
 from promptcheckup.cli.project import (
@@ -27,6 +28,7 @@ from promptcheckup.cli.prompts import load_current_prompts
 from promptcheckup.errors import errors_as, fallback
 from promptcheckup.llm import LLM, LLMError, grade
 from promptcheckup.runner import Agent, AgentError, call_agent, load_function
+from promptcheckup.runner.redaction import redacted_error
 
 # Replaces every prompt for the second call. Appending would miss an agent that uses its
 # prompts correctly but only reacts to part of them.
@@ -166,12 +168,23 @@ def _cases(facts):
         (message(minimum) for applies, message in CASE_WARNINGS if applies(len(cases), minimum)),
         None,
     )
+    warning = warning or _holdout_warning(cases, facts.config.run)
     check = (
         Check("cases", "ok", summary)
         if warning is None
         else Check("cases", "warn", f"{summary}; {warning}")
     )
     return check, replace(facts, cases=cases)
+
+
+def _holdout_warning(cases, run):
+    _, held = split_cases(cases, run.holdout)
+    if len(held) < run.min_pairs:
+        return (
+            f"{len(held)} held-out cases, need at least {run.min_pairs}; "
+            "add cases before testing proposals"
+        )
+    return None
 
 
 def _agent(facts):
@@ -261,7 +274,10 @@ def _budget(facts):
 def _run(facts, prompts) -> Any:
     # Copies on the way in and out: an agent that mutates its arguments or returns shared
     # state must not change what the second call or later checks see.
-    with project_context(facts.config.root):
+    with (
+        project_context(facts.config.root),
+        errors_as(AgentError, {Exception: lambda error: redacted_error(facts.redact, error)}),
+    ):
         output = call_agent(
             facts.agent,
             deepcopy(facts.input),

@@ -18,9 +18,9 @@ from promptcheckup.cli.project import (
     project_redactor,
 )
 from promptcheckup.cli.prompts import load_prompts
-from promptcheckup.errors import errors_as
 from promptcheckup.llm import LLM
-from promptcheckup.runner import AgentError, load_function, prompt_hash
+from promptcheckup.runner import load_function, prompt_hash
+from promptcheckup.runner.redaction import redacting_agent
 
 EXIT_CODES = {"better": 0, "worse": 1, "inconclusive": 2}
 SCORERS = {
@@ -66,7 +66,7 @@ def _confirmed(config, count, yes) -> bool:
 def _evaluate_project(config, cases, prompts_a, prompts_b):
     with project_context(config.root):
         redact = project_redactor(config)
-        agent = _redacting_agent(project_agent(config), redact)
+        agent = redacting_agent(project_agent(config), redact)
         cache = project_cache(config)
         scorer = SCORERS[config.scoring.mode](config, redact, cache)
         return evaluate(
@@ -82,17 +82,6 @@ def _evaluate_project(config, cases, prompts_a, prompts_b):
             cache=cache,
             confidence=config.run.confidence,
         )
-
-
-def _redacting_agent(agent, redact):
-    if redact is None:
-        return agent
-    return lambda case, prompts, timeout_s: _redacted(redact, agent(case, prompts, timeout_s))
-
-
-def _redacted(redact, value):
-    with errors_as(AgentError, {Exception: lambda error: f"run.redact failed: {error}"}):
-        return redact(value)
 
 
 def _judge_scorer(config, redact, cache):

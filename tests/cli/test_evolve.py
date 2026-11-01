@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from promptcheckup.checkup.evolve import split_cases
 from promptcheckup.checkup.ledger import trials
 from promptcheckup.cli.checkup import weekly
 from promptcheckup.cli.config import load_config
@@ -40,6 +41,7 @@ def args(project, *options, command="evolve", yes=True):
             "--config",
             str(project / "promptcheckup.toml"),
             *(["--yes"] if yes else []),
+            *(["--holdout", "0.5"] if command == "evolve" else []),
             *options,
         ]
     )
@@ -89,7 +91,8 @@ def test_evolve_cli_decline_returns_three_without_running(project, capsys, monke
 
 def test_evolve_cli_too_few_holdout_cases_has_one_line_error(project, capsys):
     (project / "cases.jsonl").unlink()
-    append_cases(project / "cases.jsonl", cases()[20:])
+    # The CLI default share is 0.3: int(0.3 * 1 + 0.5) = 0 held-out cases.
+    append_cases(project / "cases.jsonl", cases()[20:21])
     assert main(["evolve", "--config", str(project / "promptcheckup.toml"), "--yes"]) == 3
     assert capsys.readouterr().err == (
         "promptcheckup: need at least 5 held-out cases, got 0; add cases or raise holdout_share\n"
@@ -135,7 +138,8 @@ def test_weekly_records_accepted_and_failed_gated_proposals(project, command, ed
     rows = ledger(project)
     assert len(rows) == 1 and rows[0]["command"] == command
     assert rows[0]["confidence"] == 0.95 and rows[0]["decision"] == decision
-    assert trials(project, [c.id for c in cases()]) == 1
+    _, held = split_cases(cases(), 0.5)
+    assert trials(project, [c.id for c in held]) == 1
 
 
 def test_weekly_does_not_record_ungated_rejected_edit(project):
@@ -173,9 +177,13 @@ def test_weekly_honours_base_confidence_for_borderline_proposals(project, comman
     config = project / "promptcheckup.toml"
     config.write_text(config.read_text() + "confidence = 0.99\n")
     (project / "cases.jsonl").unlink()
+    learning, held = split_cases(cases(), 0.5)
+    # Diffs -7..12 have mean 2.5 and sample variance 35, so t = 2.5 / sqrt(35 / 20)
+    # = 1.89, between the df=19 critical values 1.729 (90%) and 2.861 (99%).
     append_cases(
         project / "cases.jsonl",
-        [replace(case, input={**case.input, "weight": i - 15.5}) for i, case in enumerate(cases())],
+        learning
+        + [replace(case, input={**case.input, "weight": i - 7}) for i, case in enumerate(held)],
     )
     result = project / "weekly.json"
     weekly(args(project, "--json", str(result), command=command), llm=proposals())
