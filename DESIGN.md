@@ -376,11 +376,11 @@ This runs when there are no cases yet, or the user asks for it.
 
 ### 7.9 Evolve: autonomous proposals that cannot fool themselves
 
-A loop that proposes prompt edits and keeps the winners fails in two classic ways. It learns and tests on the same cases, so its edits overfit them. And every extra trial is another chance of a false "better": ten variants at 95% confidence give about a 40% chance of at least one. Quants call this backtest overfitting. `evolve` guards against both.
+A loop that proposes prompt edits and keeps the winners fails in two classic ways. It learns and tests on the same cases, so its edits overfit them. And every extra trial is another chance of a false "better": ten variants at 95% confidence give about a 22% chance of at least one, since each has a 2.5% chance. Quants call this backtest overfitting. `evolve` guards against both.
 
 1. **Split the cases by a fixed rule,** never by results. A case is held out when the first 8 hex digits of its ID, read as a fraction, fall below `holdout_share` (default 0.3). The held-out part needs at least `min_pairs` cases, or the run stops with an error naming the numbers.
 2. **Each round is one proposal pipeline run (7.6–7.7):** current runs, failures and patterns on the **learning** cases only. Then the proposal is gated against the current best on the **held-out** cases. The proposal request never contains a held-out case.
-3. **The bar rises with the number of rounds.** Each round's gate uses confidence `1 − (1 − base) / rounds` (Bonferroni), capped at 0.999, the gate's supported maximum. The chance of keeping any false improvement over the whole run then stays near `1 − base`.
+3. **The bar rises with the number of rounds.** Each round's gate uses confidence `1 − (1 − base) / rounds` (Bonferroni), capped at 0.999, the gate's supported maximum. The chance of keeping any false improvement over the whole run then stays below `(1 − base) / 2`, the same 2.5% as a single gate at the default 95%.
 4. **An accepted edit becomes the new baseline.** The run stops at the first round that doesn't pass, when the budget runs out, or after `rounds`. A budget stop keeps only completed rounds.
 5. **Output:** the final prompt files and a lineage report (per round: rationale, cited cases, held-out stats, diff). **It never merges or deploys.** The weekly workflow or a person opens the PR.
 

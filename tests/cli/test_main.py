@@ -92,7 +92,6 @@ def test_init_writes_three_templates_and_skips_existing_files(tmp_path, capsys):
         "--body-file report.md",
         "continue-on-error: true",
         "pull-requests: write",
-        "pip install git+https://github.com/gael55x/promptcheckup",
     ):
         assert fragment in text
     assert "-e ." not in text  # the user's repository need not be a Python package
@@ -386,3 +385,12 @@ def test_gate_judge_mode_retries_a_rate_limited_judge(project, judge_server):
     assert result.returncode == 0, result.stderr
     assert result.stdout.startswith("B is better: 20 of 20 cases improved")
     assert len(requests) == 121  # 120 judgments plus the one rate-limited attempt
+
+
+def test_workflow_templates_install_the_pinned_pypi_release(tmp_path):
+    assert main(["init", "--dir", str(tmp_path)]) == 0
+    for name in ("promptcheckup-gate.yml", "promptcheckup-checkup.yml"):
+        text = (tmp_path / ".github/workflows" / name).read_text()
+        # The signed PyPI release, never whatever is on the default branch today.
+        assert 'pip install "promptcheckup>=1,<2"' in text
+        assert "git+" not in text

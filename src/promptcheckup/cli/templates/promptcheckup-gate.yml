@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.11'
       # Also install whatever your agent imports, e.g. pip install -r requirements.txt
-      - run: python -m pip install git+https://github.com/gael55x/promptcheckup
+      - run: python -m pip install "promptcheckup>=1,<2"
       - name: Evaluate the prompt change
         continue-on-error: true
         env:

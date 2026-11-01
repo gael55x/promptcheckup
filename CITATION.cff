@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use promptcheckup in your work, please cite it as below."
 type: software
 title: "promptcheckup: paired replay for deciding whether a prompt change made an AI agent better"
-version: 1.0.0
+version: 1.0.1
 license: Apache-2.0
 repository-code: "https://github.com/gael55x/promptcheckup"
 authors:
