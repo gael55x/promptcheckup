@@ -47,7 +47,7 @@ def paired_differences(markets: list[float], edge: float, seed: int = 0) -> list
 
 
 if __name__ == "__main__":
-    from promptcheckup.gate import decide
+    from promptcheckup import decide
 
     weeks = make_weeks()
     naive = naive_difference(weeks, edge=0.3)
