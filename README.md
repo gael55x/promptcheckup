@@ -80,6 +80,31 @@ mean change +0.067, 95% CI [+0.052, +0.082]
 
 To see paired replay beat a naive comparison, run the [planted example](examples/planted/). It needs no API key.
 
+## Gate a prompt change on your agent
+
+`init` writes a config, three example cases and a pull-request workflow. It never overwrites existing files:
+
+```bash
+promptcheckup init
+```
+
+Point `promptcheckup.toml` at your agent (`entry = "app.agent:run"`, a function taking `(case, prompts)`, or `cmd = "node agent.js"`), your prompt files and your cases. Then compare the working tree against a git ref:
+
+```bash
+promptcheckup gate --old-ref origin/main --out report.md
+```
+
+It prints the planned agent and judge calls and asks before spending anything (`--yes` skips the question in CI). The report's first line is the verdict, for example `B is better: 18 of 25 cases improved (95% CI +0.12 to +0.31).`
+
+| Exit code | Meaning |
+|---|---|
+| 0 | better |
+| 1 | worse |
+| 2 | not sure yet |
+| 3 | configuration or runtime error, with a one-line message |
+
+In judge mode, the judge is checked against itself (old prompt against old prompt) before its verdict is trusted.
+
 ## How it works
 
 1. **Replay.** Run every case through prompt A and prompt B, back-to-back, so both see the same conditions.
@@ -89,7 +114,7 @@ To see paired replay beat a naive comparison, run the [planted example](examples
    - **worse** if it sits entirely below zero;
    - **not sure yet** otherwise, or when the differences are skewed toward a few large losses.
 
-All three steps are built as library modules (`runner.replay`, `llm.judge`, `decide`). The CLI that ties them together is next. See [DESIGN.md](DESIGN.md) for the full architecture.
+`promptcheckup gate` runs all three steps. See [DESIGN.md](DESIGN.md) for the full architecture.
 
 ## Benchmarks
 
@@ -115,7 +140,8 @@ python benchmarks/charts.py                              # renders the SVG chart
 | Statistical gate with skew guard, benchmarks, planted example | **Done** |
 | Cases, `@record` decorator, agent runner (Python and any-language command), replay cache | **Done** |
 | LLM judge with order-swapping, prompt-injection protection and a self-check | **Done** |
-| `promptcheckup gate` / `checkup` CLI, weekly check-up, GitHub workflow templates | Next |
+| `promptcheckup init` and `gate` CLI, pull-request workflow template | **Done** |
+| Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | Next |
 | Trading-agent and support-bot examples; validation on real agents | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).

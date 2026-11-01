@@ -1,6 +1,6 @@
 # promptcheckup: design for v1.0
 
-**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, and the LLM judge are built (section 15).
+**Status:** design for v1.0, written 2026-11-01. The statistical gate, cases and replay, the LLM judge, and the PR gate with its CLI are built (section 15).
 
 ---
 
@@ -455,7 +455,8 @@ The claim must be proven, not just the code. Launch only with these numbers in t
 | Statistical gate | `gate.py` + planted example (tests 1–2) | Done | — |
 | Cases and replay | cases, record, agents, replay, cache (tests 3–5) | Done | — |
 | LLM judge | llm client, grader, judge + self-check (test 6) | Done (offline; real runs need a key) | LLM API key and budget for real runs |
-| Check-up and CLI | starter, propose, checkup, report, CLI, init + templates (tests 7–9) | Planned | — |
+| PR gate and CLI | config, evaluation, gate report, `init` and `gate` commands, gate workflow template | Done | — |
+| Weekly check-up | starter, patterns, propose, snapshots, `checkup` and `propose` commands, check-up workflow (tests 7–9) | Planned | — |
 | Examples | Support-bot quickstart, trading example | Planned | LLM API key and budget |
 | Validation | Section 14, dogfood on LayeredMemoryTrader | Planned | 2+ weeks of real check-ups |
 | Release | README with real numbers, docs, article, `CITATION.cff` | Planned | Release to PyPI |
