@@ -1,7 +1,6 @@
 # Connect your agent
 
-Install with Python 3.11 or later: `python -m pip install git+https://github.com/gael55x/promptcheckup`.
-The package is not on PyPI yet. It needs no runtime dependencies.
+Install with Python 3.11 or later: `pip install promptcheckup`. It has no runtime dependencies.
 
 For a first gate without a provider account, use the [plain example](../examples/connect/plain/).
 After installing, run `sh examples/connect/plain/first-gate.sh` from a clone of this repository. It runs doctor, compares

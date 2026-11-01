@@ -109,3 +109,9 @@ def test_false_better_ranges_match_the_committed_csv():
 
 def test_multiple_trials_figure_matches_the_one_sided_rate():
     assert round(100 * (1 - 0.975**10)) == 22 and "about a 22% chance" in README
+
+
+def test_guide_installs_from_pypi():
+    guide = (ROOT / "docs/connect-your-agent.md").read_text(encoding="utf-8").lower()
+    assert "pip install promptcheckup" in guide
+    assert "not on pypi" not in guide and "git+https" not in guide

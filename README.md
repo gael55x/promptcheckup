@@ -52,12 +52,14 @@ B is better: 28 of 30 cases improved (95% CI +0.78 to +0.99).
 
 ### Other commands
 
+Each runs as `promptcheckup <command>`.
+
 | Command | What it does |
 |---|---|
-| `promptcheckup checkup` | The weekly check. Compares this week's answers with last week's to catch silent model or provider changes, groups failing cases, and proposes one small prompt edit. The edit is kept only if it passes the gate. |
-| `promptcheckup evolve` | Repeats the proposal step for several rounds. Edits are written from one part of your cases and tested on another part they never saw, and each round has to clear a higher bar. |
-| `promptcheckup propose` | Proposes one edit without the drift check. |
-| `promptcheckup doctor` | Checks the config, prompts, cases, agent, scoring, judge and budget, and says what to fix. |
+| `checkup` | The weekly check. Compares this week's answers with last week's to catch silent model or provider changes, groups failing cases, and proposes one small prompt edit. The edit is kept only if it passes the gate. |
+| `evolve` | Repeats the proposal step for several rounds. Edits are written from one part of your cases and tested on another part they never saw, and each round has to clear a higher bar. |
+| `propose` | Proposes one edit without the drift check. |
+| `doctor` | Checks the config, prompts, cases, agent, scoring, judge and budget, and says what to fix. |
 
 None of these merge anything. Edits that pass are written to your prompt files, and the workflow templates open a pull request for you to review.
 
