@@ -111,7 +111,12 @@ def _output(value) -> str:
 
 
 def _cell(text) -> str:
-    return html.escape(str(text)).replace("|", r"\|").replace("\n", "<br>").replace("\r", "")
+    return (
+        html.escape(str(text), quote=False)
+        .replace("|", r"\|")
+        .replace("\n", "<br>")
+        .replace("\r", "")
+    )
 
 
 def _failures(errors) -> str:
