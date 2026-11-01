@@ -119,6 +119,19 @@ Each run compares this week's answers with last week's snapshot for the same pro
 
 `init` also writes `.github/workflows/promptcheckup-checkup.yml`. It runs weekly, posts each report to one long-running issue, and opens a pull request for a passed edit. It never merges.
 
+## Let it improve the prompt on its own
+
+```bash
+promptcheckup evolve --rounds 5 --out evolve.md
+```
+
+`evolve` repeats the proposal step: find failures, propose a small edit, gate it, keep it if it wins, and go again. It is built not to fool itself:
+- **It learns and judges on different cases.** Cases are split by a fixed rule on their IDs, never by results. Proposals only ever see the learning cases; every edit is gated on the held-out ones, so an edit that only "memorises" the learning cases fails.
+- **The bar rises with every extra round.** Each round must pass at `1 − 0.05 / rounds` confidence (99% for 5 rounds), so the chance of keeping any false improvement over the whole run stays near 5%.
+- **It stops at the first round that doesn't pass,** writes the final prompt files and a lineage report (each round's reasoning, cited cases, held-out stats and diff), and never merges or deploys.
+
+Every gated comparison is also recorded in `.promptcheckup/trials.jsonl`. When several variants have been tried on the same cases, the report says how many and how many false "better" verdicts that many tries would produce by chance, because trying variants until one passes is how backtests overfit. Set `run.confidence` to raise the bar for everything.
+
 ## How it works
 
 1. **Replay.** Run every case through prompt A and prompt B, back-to-back, so both see the same conditions.
@@ -163,7 +176,7 @@ python benchmarks/charts.py                              # renders the SVG chart
 | `promptcheckup doctor` and a guide for connecting your agent | **Done** |
 | Trading-agent and support-bot examples | **Done** |
 | Simulated year of weekly check-ups with planted incidents | **Done** |
-| `promptcheckup evolve`: autonomous proposals gated on held-out cases, plus a trial ledger | Next |
+| `promptcheckup evolve`: autonomous proposals gated on held-out cases, plus a trial ledger | **Done** |
 | pytest helper and a look-ahead recipe for time-series agents | Planned |
 | Validation on real agents over several weeks of check-ups | Planned |
 
