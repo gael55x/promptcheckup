@@ -102,6 +102,24 @@ def replay(
     a pair. Agent failures become runs with an error; they are never cached.
     """
     prompts = {"A": prompts_a, "B": prompts_b}
+    return _run_sets(agent, cases, prompts, samples, timeout_s, max_calls, cache)
+
+
+def run_prompts(
+    agent: Agent,
+    cases: Sequence[Case],
+    prompts: dict[str, str],
+    *,
+    samples: int = 2,
+    timeout_s: float = 60,
+    max_calls: int = 400,
+    cache: Cache | None = None,
+) -> Replay:
+    """Run one prompt set, labelled A, with the same cache, errors and call cap as replay."""
+    return _run_sets(agent, cases, {"A": prompts}, samples, timeout_s, max_calls, cache)
+
+
+def _run_sets(agent, cases, prompts, samples, timeout_s, max_calls, cache):
     hashes = {side: prompt_hash(value) for side, value in prompts.items()}
     pairs = _planned_pairs(cases, samples, cache, hashes)
     return _replay_pairs(agent, pairs, prompts, timeout_s, max_calls, cache, hashes)
@@ -117,7 +135,7 @@ def _planned_pairs(cases, samples, cache, hashes):
         for sample in range(samples):
             yield (
                 case,
-                [_cached_run(cache, hashes[side], case.id, side, sample) for side in ("A", "B")],
+                [_cached_run(cache, hashes[side], case.id, side, sample) for side in hashes],
             )
 
 

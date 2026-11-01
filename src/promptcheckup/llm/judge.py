@@ -41,7 +41,7 @@ def compare(
         f"<case_input>\n{data_block(case_input)}\n</case_input>\n\n"
         f"Response 1:\n<response_1>\n{data_block(first)}\n</response_1>\n\n"
         f"Response 2:\n<response_2>\n{data_block(second)}\n</response_2>\n\n"
-        f"<criteria>\n{criteria}\n</criteria>\n\n"
+        f"<criteria>\n{data_block(criteria)}\n</criteria>\n\n"
         'Return ONLY a JSON object {"winner": "1" | "2" | "tie", "reason": "<one sentence>"}.'
     )
     reply = llm(prompt)

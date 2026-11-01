@@ -82,6 +82,8 @@ To see paired replay beat a naive comparison, run the [planted example](examples
 
 ## Gate a prompt change on your agent
 
+See [Connect your agent](docs/connect-your-agent.md) for runnable adapters, then run `promptcheckup doctor` to check the wiring.
+
 `init` writes a config, three example cases and a pull-request workflow. It never overwrites existing files:
 
 ```bash
@@ -104,6 +106,16 @@ It prints the planned agent and judge calls and asks before spending anything (`
 | 3 | configuration or runtime error, with a one-line message |
 
 In judge mode, the judge is checked against itself (old prompt against old prompt) before its verdict is trusted.
+
+## Weekly check-up
+
+```bash
+promptcheckup checkup --out checkup.md --proposal-out proposal.md
+```
+
+Each run compares this week's answers with last week's snapshot for the same prompts, so a silent model or tool change shows up as drift (exit code 1). It groups failing cases into at most three patterns and asks the LLM for one small prompt edit that cites them. The edit is kept only if it passes the same paired gate, and it is written to your prompt files for review. With no cases yet, the first run generates 20 synthetic starter cases; the report shows their share until you replace them with recorded ones.
+
+`init` also writes `.github/workflows/promptcheckup-checkup.yml`. It runs weekly, posts each report to one long-running issue, and opens a pull request for a passed edit. It never merges.
 
 ## How it works
 
@@ -141,7 +153,8 @@ python benchmarks/charts.py                              # renders the SVG chart
 | Cases, `@record` decorator, agent runner (Python and any-language command), replay cache | **Done** |
 | LLM judge with order-swapping, prompt-injection protection and a self-check | **Done** |
 | `promptcheckup init` and `gate` CLI, pull-request workflow template | **Done** |
-| Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | Next |
+| Weekly `checkup`: drift, failure patterns, gated prompt proposals, issue and PR workflow | **Done** |
+| `promptcheckup doctor` and a guide for connecting your agent | **Done** |
 | Trading-agent and support-bot examples; validation on real agents | Planned |
 
 The full plan, including what is deliberately out of scope, is in [DESIGN.md](DESIGN.md).

@@ -1,0 +1,25 @@
+[agent]
+entry = "openai_agent:run"
+description = "Answers questions through OpenAI chat completions"
+example_input = { question = "What is 2 + 2?" }
+timeout_s = 60
+
+[prompts]
+files = ["prompts/system.md"]
+
+[cases]
+paths = ["cases/*.jsonl"]
+
+[scoring]
+mode = "judge"
+criteria = "Answer the question accurately and directly. Do not invent facts."
+
+[llm]
+base_url = "https://api.openai.com/v1"
+model = "gpt-5-mini"
+api_key_env = "OPENAI_API_KEY"
+
+[run]
+samples = 2
+min_pairs = 20
+max_calls = 400
