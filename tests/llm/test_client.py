@@ -309,3 +309,20 @@ def test_keeps_a_successful_answer_when_usage_counts_are_null(http_server):
 
     assert llm("hi") == "ok"
     assert llm.usage == Usage(calls=1, prompt_tokens=0, completion_tokens=0)
+
+
+def test_negative_retry_count_is_rejected_up_front():
+    with pytest.raises(ValueError, match="max_retries"):
+        LLM(base_url="http://127.0.0.1:1", model="m", api_key_env="", max_retries=-1)
+
+
+def test_key_with_a_line_break_is_rejected_before_any_request(http_server, monkeypatch):
+    # A line break would be header injection; rejecting it also means no error can echo it.
+    monkeypatch.setenv("PROMPTCHECKUP_TEST_KEY", "fake\r\nX-Injected: 1")
+    llm = LLM(base_url=http_server.base_url, model="m", api_key_env="PROMPTCHECKUP_TEST_KEY")
+
+    with pytest.raises(LLMError, match="line break") as caught:
+        llm("hello")
+
+    assert http_server.requests == []
+    assert "fake" not in str(caught.value)

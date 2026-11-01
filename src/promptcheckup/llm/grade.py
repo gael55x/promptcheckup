@@ -2,10 +2,16 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
+from promptcheckup.errors import errors_as
 from promptcheckup.llm.client import LLMError
-from promptcheckup.llm.prompting import data_block, json_reply
+from promptcheckup.llm.prompting import data_block, nonempty_text, validated_reply
+
+GRADE_SCHEMA = MappingProxyType(
+    {"pass": lambda value: isinstance(value, bool), "reason": nonempty_text}
+)
 
 
 @dataclass(frozen=True)
@@ -25,14 +31,6 @@ def grade(llm: Callable[[str], str], case_input: dict, output: Any, criteria: st
         'Return ONLY a JSON object {"pass": true|false, "reason": "<one sentence>"}.'
     )
     reply = llm(prompt)
-    try:
-        result = json_reply(reply)
-        if set(result) != {"pass", "reason"}:
-            raise ValueError
-        if not isinstance(result["pass"], bool):
-            raise ValueError
-        if not isinstance(result["reason"], str) or not result["reason"].strip():
-            raise ValueError
-    except ValueError:
-        raise LLMError(f"invalid grade response: {reply[:200]!r}") from None
+    with errors_as(LLMError, {ValueError: f"invalid grade response: {reply[:200]!r}"}):
+        result = validated_reply(reply, GRADE_SCHEMA)
     return Grade(passed=result["pass"], reason=result["reason"])

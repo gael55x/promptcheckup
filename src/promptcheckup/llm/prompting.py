@@ -1,7 +1,29 @@
 """Shared prompt plumbing: embed untrusted data safely and parse strict JSON replies."""
 
 import json
+from collections.abc import Callable, Mapping
 from typing import Any
+
+REPLY_RULES = (
+    (lambda result, schema: result.keys() == schema.keys(), "reply has unexpected keys"),
+    (
+        lambda result, schema: all(check(result[key]) for key, check in schema.items()),
+        "reply has invalid field values",
+    ),
+)
+
+
+def nonempty_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def validated_reply(reply: str, schema: Mapping[str, Callable[[Any], bool]]) -> dict:
+    """Parse a JSON reply and require exactly the fields and values in the schema."""
+    result = json_reply(reply)
+    for predicate, message in REPLY_RULES:
+        if not predicate(result, schema):
+            raise ValueError(message)
+    return result
 
 
 def data_block(value: Any) -> str:
