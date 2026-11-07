@@ -11,8 +11,8 @@ A pass/fail check for prompt changes. Runs your old and new prompt on the same c
 [![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://github.com/gael55x/promptcheckup/blob/main/pyproject.toml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/gael55x/promptcheckup/blob/main/LICENSE)
 
-<!-- Recorded with docs/demo.tape: run `vhs docs/demo.tape` from the repository root. -->
-<img src="https://raw.githubusercontent.com/gael55x/promptcheckup/main/docs/assets/demo.gif" alt="Terminal: comparing two weeks picks the worse prompt; running both prompts on the same days finds the better one, then promptcheckup gate prints B is better with a 95% interval." width="760">
+<!-- Animated SVG built from the real output of examples/planted/planted.py and examples/support-bot/results/report-claude-haiku-5-5.md. -->
+<img src="https://raw.githubusercontent.com/gael55x/promptcheckup/main/docs/assets/demo.svg" alt="Terminal demo: comparing two different weeks picks the worse prompt; running both prompts on the same days finds the better one; a real support-bot run reports B is better, 28 of 30 cases, with a reliable judge self-check." width="760">
 
 <table>
 <tr>

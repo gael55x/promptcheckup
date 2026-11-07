@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="312" viewBox="0 0 900 312" role="img" aria-label="Terminal demo: comparing different weeks picks the worse prompt A; paired replay on the same days finds B better with a 95% interval; a real support-bot run reports B is better, 28 of 30 cases, with a reliable judge self-check.">
+<style>
+text{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;font-size:14px;fill:#c9d1d9}
+.l{opacity:0}
+@keyframes k0{0%,3.53%{opacity:0}3.82%,94.00%{opacity:1}100%{opacity:0}}#l0{animation:k0 17.0s linear infinite}
+@keyframes k1{0%,6.47%{opacity:0;clip-path:inset(0 100% 0 0)}6.53%{opacity:1;clip-path:inset(0 100% 0 0)}13.68%,94.00%{opacity:1;clip-path:inset(0 0 0 0)}100%{opacity:0;clip-path:inset(0 0 0 0)}}#l1{animation:k1 17.0s linear infinite}
+@keyframes k2{0%,17.21%{opacity:0}17.50%,94.00%{opacity:1}100%{opacity:0}}#l2{animation:k2 17.0s linear infinite}
+@keyframes k3{0%,19.26%{opacity:0}19.56%,94.00%{opacity:1}100%{opacity:0}}#l3{animation:k3 17.0s linear infinite}
+@keyframes k5{0%,23.09%{opacity:0}23.38%,94.00%{opacity:1}100%{opacity:0}}#l5{animation:k5 17.0s linear infinite}
+@keyframes k6{0%,26.03%{opacity:0;clip-path:inset(0 100% 0 0)}26.09%{opacity:1;clip-path:inset(0 100% 0 0)}38.97%,94.00%{opacity:1;clip-path:inset(0 0 0 0)}100%{opacity:0;clip-path:inset(0 0 0 0)}}#l6{animation:k6 17.0s linear infinite}
+@keyframes k7{0%,42.50%{opacity:0}42.79%,94.00%{opacity:1}100%{opacity:0}}#l7{animation:k7 17.0s linear infinite}
+@keyframes k8{0%,44.56%{opacity:0}44.85%,94.00%{opacity:1}100%{opacity:0}}#l8{animation:k8 17.0s linear infinite}
+@keyframes k10{0%,48.38%{opacity:0}48.68%,94.00%{opacity:1}100%{opacity:0}}#l10{animation:k10 17.0s linear infinite}
+@media (prefers-reduced-motion: reduce){.l{animation:none!important;opacity:1;clip-path:none}}
+</style>
+<rect width="900" height="312" rx="10" fill="#0d1117"/>
+<rect width="900" height="34" rx="10" fill="#161b22"/>
+<rect y="24" width="900" height="10" fill="#161b22"/>
+<circle cx="22" cy="17" r="6" fill="#ff5f56"/><circle cx="42" cy="17" r="6" fill="#ffbd2e"/><circle cx="62" cy="17" r="6" fill="#27c93f"/>
+<text x="450" y="22" text-anchor="middle" style="fill:#8b949e;font-size:12px">promptcheckup</text>
+<text id="l0" class="l" x="24" y="62" xml:space="preserve"><tspan fill="#8b949e"># Prompt B really is better. Compare it with A's week, then on the same days:</tspan></text>
+<text id="l1" class="l" x="24" y="86" xml:space="preserve"><tspan fill="#58a6ff" font-weight="700">$ </tspan><tspan fill="#c9d1d9">python3 examples/planted/planted.py</tspan></text>
+<text id="l2" class="l" x="24" y="110" xml:space="preserve"><tspan fill="#c9d1d9">Naive comparison (different weeks): B - A = -1.56  </tspan><tspan fill="#f85149" font-weight="700">-&gt; picks A</tspan></text>
+<text id="l3" class="l" x="24" y="134" xml:space="preserve"><tspan fill="#c9d1d9">Paired replay (same days): mean B - A = +0.36, 95% CI [+0.17, +0.55] </tspan><tspan fill="#3fb950" font-weight="700">-&gt; better</tspan></text>
+<text id="l5" class="l" x="24" y="170" xml:space="preserve"><tspan fill="#8b949e"># A real run: a support bot, a one-line prompt change, Claude Haiku as the judge</tspan></text>
+<text id="l6" class="l" x="24" y="194" xml:space="preserve"><tspan fill="#58a6ff" font-weight="700">$ </tspan><tspan fill="#c9d1d9">grep -E "is better|Self-check" examples/support-bot/results/report-claude-haiku-5-5.md</tspan></text>
+<text id="l7" class="l" x="24" y="218" xml:space="preserve"><tspan fill="#3fb950" font-weight="700">B is better: 28 of 30 cases improved (95% CI +0.78 to +0.99).</tspan></text>
+<text id="l8" class="l" x="24" y="242" xml:space="preserve"><tspan fill="#c9d1d9">Self-check: reliable; consistency 100.0%. no detected same-prompt preference; consistency met.</tspan></text>
+<text id="l10" class="l" x="24" y="278" xml:space="preserve"><tspan fill="#8b949e"># In CI, promptcheckup gate exits 0 = better, 1 = worse, 2 = not sure yet</tspan></text>
+</svg>
