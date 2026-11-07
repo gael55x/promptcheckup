@@ -2,16 +2,63 @@
 
 # promptcheckup
 
+**Your prompt change looked better. Was it better, or was it just an easier week?**
+
+A pass/fail check for prompt changes. Runs your old and new prompt on the same cases and says **better**, **worse** or **not sure yet**, with a 95% confidence interval. Works in CI. No dependencies.
+
 [![CI](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml/badge.svg)](https://github.com/gael55x/promptcheckup/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/promptcheckup?label=pypi)](https://pypi.org/project/promptcheckup/)
 [![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)](https://github.com/gael55x/promptcheckup/blob/main/pyproject.toml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/gael55x/promptcheckup/blob/main/LICENSE)
 
+<!-- Recorded with docs/demo.tape: run `vhs docs/demo.tape` from the repository root. -->
+<img src="https://raw.githubusercontent.com/gael55x/promptcheckup/main/docs/assets/demo.gif" alt="Terminal: comparing two weeks picks the worse prompt; running both prompts on the same days finds the better one, then promptcheckup gate prints B is better with a 95% interval." width="760">
+
+<table>
+<tr>
+<td align="center" width="25%"><h3>41.3%</h3>of the time, comparing last week's prompt with this week's picked the <b>worse</b> one<br><sub><a href="#results">simulation, 2,000 runs</a></sub></td>
+<td align="center" width="25%"><h3>0 of 2,000</h3>runs where paired replay picked the worse one<br><sub><a href="#results">same simulation</a></sub></td>
+<td align="center" width="25%"><h3>2.2–2.7%</h3>false "better" when both prompts are equal<br><sub><a href="#results">target 2.5%</a></sub></td>
+<td align="center" width="25%"><h3>0</h3>dependencies outside the Python standard library<br><sub>any agent language</sub></td>
+</tr>
+</table>
+
 </div>
 
-Test whether a prompt change actually made your AI agent better.
+## Try it in 30 seconds (no API key)
 
-promptcheckup runs the same cases through your old prompt and your new one, compares the two answers for each case, and gives one of three verdicts: better, worse, or not sure yet. It has no dependencies outside the Python standard library and works with agents written in any language.
+```bash
+git clone https://github.com/gael55x/promptcheckup && cd promptcheckup
+PYTHONPATH=src python3 examples/planted/planted.py
+```
+
+```text
+Naive comparison (different weeks): B - A = -1.56  -> picks A
+Paired replay (same days): mean B - A = +0.36, 95% CI [+0.17, +0.55] -> better
+```
+
+Prompt B really is better. Comparing it with last week's run of prompt A says the opposite, because the week changed, not the prompt. Running both prompts on the same days cancels the week out.
+
+## Use it on your agent
+
+```bash
+pip install promptcheckup        # Python 3.11+
+promptcheckup init               # config, example cases, two GitHub workflows
+promptcheckup doctor             # checks the wiring and says what to fix
+promptcheckup gate --old-ref origin/main --out report.md
+```
+
+```text
+B is better: 28 of 30 cases improved (95% CI +0.78 to +0.99).
+```
+
+`gate` exits 0 for better, 1 for worse, 2 for not sure yet, so a pull request that makes the agent worse fails CI. Your agent can be a Python function or any program that reads JSON on stdin and writes JSON on stdout. See the [connection guide](https://github.com/gael55x/promptcheckup/blob/main/docs/connect-your-agent.md) for plain Python, OpenAI and Anthropic SDKs, and Node.js.
+
+## Why not just compare the scores?
+
+- **Last week isn't a control.** Model updates, market moves and traffic mix shift every answer. promptcheckup runs both prompts back to back on the same inputs, so those shifts cancel.
+- **20 cases can lie.** It gives an interval, not a single score, and says *not sure yet* instead of guessing. It also catches a few large losses hidden among many small wins.
+- **LLM judges have favourites.** Before a judge's verdict counts, the judge is checked on old prompt versus old prompt, which should come out even, and sees each pair in both orders.
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/gael55x/promptcheckup/main/benchmarks/results/naive_vs_paired.svg" alt="Bar chart comparing naive and paired replay in the constructed weekly-noise scenario described below." width="720">
@@ -19,15 +66,7 @@ promptcheckup runs the same cases through your old prompt and your new one, comp
 
 In this simulation, each week's conditions shift every answer by the same amount, and that shift cancels when both prompts run on the same inputs. Comparing last week's prompt with this week's picked the worse prompt in 41.3% of runs. Running both on the same inputs picked the better one in 91.7%, never picked the worse one in 2,000 runs, and said not sure yet in the other 8.4%.
 
-## Install
-
-```bash
-pip install promptcheckup
-```
-
-Requires Python 3.11 or newer.
-
-## Usage
+## Setup in detail
 
 ```bash
 promptcheckup init
